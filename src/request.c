@@ -20,12 +20,14 @@ int swap_endian_request(request_t *request) {
 int read_request(request_t *request, int connfd)
 {
     size_t n = 0;
-    request = malloc(sizeof(request_t));
+    if (request == NULL) {
+        return 1;
+    }
     rio_t rio;
 
     Rio_readinitb(&rio, connfd);
-    n = rio_readnb(&rio, request, sizeof(request_t));
-    return n == sizeof(request_t);
+    n = Rio_readnb(&rio, request, sizeof(request_t));
+    return n != sizeof(request_t);
 }
 
 void write_request(request_t *request, int connfd) {

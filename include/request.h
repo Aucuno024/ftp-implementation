@@ -28,7 +28,7 @@ int swap_endian_request(request_t *request);
  * @brief lit une requete depuis un descripteur de fichier
  * @param request la variable ou ecrire ce qui est lu du descripteur
  * @param connfd le descripteur de fichier
- * @return 1 si il n'y pas d'erreur 0 sinon.
+ * @return 0 si il n'y pas d'erreur 1 sinon.
  */
 int read_request(request_t *request, int connfd);
 
