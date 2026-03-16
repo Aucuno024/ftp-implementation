@@ -15,6 +15,7 @@ typedef struct {
     uint8_t endian;
     char path[MAXLINE];
 } request_t;
+
 /**
  * @fn int read_request(request_t *request, int connfd)
  * @brief lit une requete depuis un descripteur de fichier
@@ -23,4 +24,12 @@ typedef struct {
  * @return 1 si il n'y pas d'erreur 0 sinon.
  */
 int read_request(request_t *request, int connfd);
+
+/**
+ * @brief Ecrit une requête dans le socket de connexion
+ * @param request la requête à envoyer
+ * @param connfd le socket de connexion
+ */
+void write_request(request_t *request, int connfd);
+
 #endif

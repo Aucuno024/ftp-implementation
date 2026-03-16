@@ -12,3 +12,8 @@ int read_request(request_t *request, int connfd)
     n = rio_readnb(&rio, request, sizeof(request_t));
     return n == sizeof(request_t);
 }
+
+void write_request(request_t *request, int connfd) {
+    Rio_writen(connfd, request, sizeof(request_t));
+}
+
