@@ -1,8 +1,8 @@
-- Doxygen
-- CuTest
-- [ ] (Question 1) Définir le type enum des type de requêtes des  (implémenter le `typereq_t`) 
-- [ ] (Question 2) Définir la structure de donnée des requêtes (implémenter `request_t`) 
-- [ ] (Question 3) cp du tp sur la partie ECHO + Définir le squelette des différentes composantes (bonne modularité)
+- [ ] Doxygen
+- [ ] CuTest
+- [x] (Question 1) Définir le type enum des type de requêtes des  (implémenter le `typereq_t`) 
+- [x] (Question 2) Définir la structure de donnée des requêtes (implémenter `request_t`) 
+- [x] (Question 3) cp du tp sur la partie ECHO + Définir le squelette des différentes composantes (bonne modularité)
 - [ ] (Question 4) Gestion des processus du serveur (terminaison, SIGINT, SIGKILL...) 
 - [ ] (Question 4) Gestion du boutisme
 - [ ] (Question 5) Implémentation de répertoire par défaut (serveur et client)
