@@ -1,0 +1,23 @@
+- [ ] (Question 1) Définir le type enum des type de requêtes des  (implémenter le `typereq_t`) 
+- [ ] (Question 2) Définir la structure de donnée des requêtes (implémenter `request_t`) 
+- [ ] (Question 3) cp du tp sur la partie ECHO + Définir le squelette des différentes composantes (bonne modularité)
+- [ ] (Question 4) Gestion des processus du serveur (terminaison, SIGINT, SIGKILL...) 
+- [ ] (Question 4) Gestion du boutisme
+- [ ] (Question 5) Implémentation de répertoire par défaut (serveur et client)
+- [ ] (Question 6) Fermer connexion après traitement de requête (côté serveur) 
+- [ ] (Question 6) Définir une structure de donnée pour les réponses du serveur (implémenter `response_t`)
+- [ ] (Question 6) Identifier + traiter la validité d'une requête cliente (doit transmettre une erreur si requête invalide)
+- [ ] (Question 6) Traitement de la requête `GET` en un seul coup (pour tout fichier)
+- [ ] (Question 7) Encodage des requête dans la structure de donnée des requêtes (`request_t`) 
+- [ ] (Question 7) Traitement de la réponse du serveur.
+- [ ] (Question 8) Gérer le découpage des fichier en bloc (serveur et client) (création d'une structure de paquet)
+- [ ] (Question 9) Gérer plusieurs demande de fichiers connexion
+- [ ] (Question 10) Gestion des pannes côté client (+ faire reprendre le transfert)
+- [ ] (Question 11) Implémenter un serveur maître
+- [ ] (Question 12) Implémenter l'interconnexion avec les esclaves
+- [ ] (Question 13) Adapter le protocole d'ecahnge client serveur au modèle master-slave
+- [ ] (Question 14 BONUS) reconnexion en cas de panne de serveur esclave.
+- [ ] (Question 15) Implémenter ls
+- [ ] (Question 16) Implémenter rm et put + cohérence entre les serveurs esclaves
+- [ ] (Question 17) Gerer le système d'authentification
+- [ ] EXTENTION (Question 18) Chiffrement des données
