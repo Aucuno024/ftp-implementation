@@ -12,9 +12,16 @@ typedef enum {
 
 typedef struct {
     typereq_t typereq;
-    uint8_t endian;
+    uint8_t endian; // 0 pour little endian, 1 pour big endian
     char path[MAXLINE];
 } request_t;
+
+/**
+ * @brief Permet de swap les endians d'une requete
+ * @param request la requete a swap
+ * @return int 0 si le swap a été effectué 1 sinon
+ */
+int swap_endian_request(request_t *request);
 
 /**
  * @fn int read_request(request_t *request, int connfd)
@@ -31,5 +38,23 @@ int read_request(request_t *request, int connfd);
  * @param connfd le socket de connexion
  */
 void write_request(request_t *request, int connfd);
+
+/**
+ * @brief Encode une requete en remplissant les champs de la structure request_t
+ * @param request la requete a remplir
+ * @param typereq  le type de la requete a encoder
+ * @param path  le chemin de la requete a encoder
+ * @return int 0 si l'encodage a été effectué 1 sinon
+ */
+int encode_request(request_t *request, typereq_t typereq, const char *path);
+
+/**
+ * @brief Decode une requete en lisant les champs de la structure request_t
+ * @param request la requete a decoder
+ * @param typereq  un pointeur vers le type de la requete a decoder
+ * @param path  le chemin de la requete a decoder
+ * @return int 0 si le décodage a été effectué 1 sinon
+ */
+int decode_request(request_t *request, typereq_t *typereq, char *path);
 
 #endif
