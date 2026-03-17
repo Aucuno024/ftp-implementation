@@ -5,15 +5,14 @@
 - [x] ***(Question 1)*** Définir le type enum des type de requêtes des  (implémenter le `typereq_t`) 
 - [x] ***(Question 2)*** Définir la structure de donnée des requêtes (implémenter `request_t`) 
 - [x] ***(Question 3)*** cp du tp sur la partie ECHO + Définir le squelette des différentes composantes (bonne modularité)
-- [ ] ***(Question 4)*** Terminaison propre du serveur : traitant SIGINT, retransmission du signal à tous les fils du pool
 - [x] ***(Question 4)*** Gestion du boutisme
 - [ ] ***(Question 5)*** Définir les répertoires de travail par défaut côté client et côté serveur (distincts pour permettre une exécution sur la même machine)
 
 ### Gestion Serveur
 
-- [ ] ***(Question 6)*** Identifier et valider le type de requête reçue ; renvoyer une erreur si type invalide
-- [ ] ***(Question 6)*** Définir une structure de donnée pour les réponses du serveur (implémenter `response_t` (au moins un champ entier code de retour succès/erreur))
-- [ ] ***(Question 6)*** Traitement GET : chargement du fichier en mémoire en une seule fois, envoi au client (tout type de fichier, y compris binaire) ; code erreur si fichier absent
+- [X] ***(Question 6)*** Identifier et valider le type de requête reçue ; renvoyer une erreur si type invalide
+- [X] ***(Question 6)*** Définir une structure de donnée pour les réponses du serveur (implémenter `response_t` (au moins un champ entier code de retour succès/erreur))
+- [X] ***(Question 6)*** Traitement GET : chargement du fichier en mémoire en une seule fois, envoi au client (tout type de fichier, y compris binaire) ; code erreur si fichier absent
 - [ ] ***(Question 6)*** Fermer connexion après traitement de la requête (côté serveur)
 
 ### Gestion Client
