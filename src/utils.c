@@ -41,3 +41,7 @@ int write_file_from_content(char path[], const uint8_t *content)
     close(fd);
     return 1;
 }
+int is_relative_path(char path[])
+{
+    return path[0] == '~' || path[0] == '/'? 0: 1;
+}
