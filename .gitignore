@@ -2,8 +2,8 @@ perso/*
 bin/*
 obj/*
 .vscode/
-serverdir/
-clientdir/
+serverdir/*
+clientdir/*
 
 # Prerequisites
 *.d
