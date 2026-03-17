@@ -59,7 +59,15 @@ int decode_response(response_t *response, uint8_t *content);
  */
 int send_response(int connfd, char path[], typereq_t type);
 
+/**
+ * @fn void send_error(int connfd, int error)
+ * @brief envoie une reponse contenant uniquement un code erreur au client
+ * @param connfd le socket où ecrire la reponse
+ * @param error le code erreur
+ */
+void send_error(int connfd, uint8_t error);
 #define NO_ERROR_R 0
 #define PATH_ERROR_R 1
 #define TYPE_ERROR_R 2
+#define ERROR_READ_REQUEST 3
 #endif

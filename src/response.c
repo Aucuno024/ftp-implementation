@@ -56,29 +56,42 @@ int send_response(int connfd, char path[], typereq_t type)
     int fd;
     response_t *response = malloc(sizeof(response_t));
     response->error = NO_ERROR_R;
-    if( type == GET)
+    switch(type)
     {
-        printf("requete get\n");
-        if(!open_file_r(path, &fd))
-        {
-            printf("fichier non ouvert %d\n", fd);
-            response->error = PATH_ERROR_R;
+        case GET:
+            if(!open_file_r(path, &fd))
+            {
+                response->error = PATH_ERROR_R;
+                write_response(response, connfd);
+                free(response);
+                return PATH_ERROR_R;
+            }
+            uint8_t buf[MAXBUF];
+            rio_t rio;
+            Rio_readinitb(&rio, fd);
+            Rio_readnb(&rio, buf, MAXBUF);
+            encode_response(response, buf);
             write_response(response, connfd);
             free(response);
-            return PATH_ERROR_R;
-        }
-        printf("fichier ouvert %d\n", fd);
-        uint8_t buf[MAXBUF];
-        rio_t rio;
-        Rio_readinitb(&rio, fd);
-        Rio_readnb(&rio, buf, MAXBUF);
-        encode_response(response, buf);
-        write_response(response, connfd);
-        free(response);
-        return NO_ERROR_R;
+            return NO_ERROR_R;
+        case BYE:
+            encode_response(response, (const uint8_t*) "BYE\n");
+            write_response(response, connfd);
+            free(response);
+            return NO_ERROR_R;
+        default:
+            response->error = TYPE_ERROR_R;
+            write_response(response, connfd);
+            free(response);
+            return TYPE_ERROR_R;
     }
-    response->error = TYPE_ERROR_R;
+}
+
+void send_error(int connfd, uint8_t error) 
+{
+    response_t *response = malloc(sizeof(response_t));
+    response->error = error;
+    response->endian = get_endianess();
     write_response(response, connfd);
     free(response);
-    return TYPE_ERROR_R;
 }
