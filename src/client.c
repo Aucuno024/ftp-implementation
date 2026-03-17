@@ -3,6 +3,7 @@
  */
 #include "csapp.h"
 #include "request.h"
+#include "response.h"
 #define PORT 2121
 
 int main(int argc, char **argv)
@@ -31,9 +32,17 @@ int main(int argc, char **argv)
     printf("client connected to server OS\n"); 
     
     request_t request;
+    response_t response;
     while (Fgets(buf, MAXLINE, stdin) != NULL) {
         encode_request(&request, GET, buf);
         write_request(&request, clientfd);
+        
+        if (read_response(&response, clientfd) == 0) {
+            uint8_t content[MAXLINE];
+            if (decode_response(&response, content) == 0) {
+                printf("Réponse: %s", content);
+            }
+        }
     }
     Close(clientfd);
     exit(0);

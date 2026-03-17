@@ -1,5 +1,6 @@
 #include "csapp.h"
 #include "request.h"
+#include "response.h"
 
 #define PORT 2121
 #define MAX_NAME_LEN 256
@@ -66,6 +67,7 @@ int main(int argc, char **argv)
                     continue;
                 }
 
+                // Traitement de la requete temporaire
                 char path[MAXLINE];
                 typereq_t typereq;
 
@@ -75,6 +77,17 @@ int main(int argc, char **argv)
                 printf("%ld bytes reçu\n", strlen(path));
                 printf("\t- type de requete : %d\n", typereq);
                 printf("\t- chemin : %s\n", path);
+
+                // Creation de la réponse temporaire
+                response_t* response = malloc(sizeof(response_t));
+                if (response == NULL) {
+                    Close(connfd);
+                    continue;
+                }
+                encode_response(response, (const uint8_t *)"OK\n");
+                write_response(response, connfd);
+                free(response);
+
                 Close(connfd);
             }
         }
