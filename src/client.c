@@ -96,6 +96,7 @@ int main(int argc, char **argv)
             if (read_response(&response, clientfd) == 0 && decode_response(&response, content, &error) == 0) {
                 if (error == NO_ERROR_R) {
                     printf("Transfer successfully complete :\n");
+                    write_file_to_client_dir(buf, content);
                 } else {
                     printf("Transfer failed with error %d\n", error);
                 }
@@ -112,7 +113,7 @@ int main(int argc, char **argv)
                 }
                 printf(" Kbytes/s)\n");
 
-                write_file_from_content(buf, content);
+                write_file_to_client_dir(buf, content);
 
             }
         }

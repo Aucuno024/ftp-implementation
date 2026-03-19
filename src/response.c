@@ -70,7 +70,10 @@ int send_response(int connfd, char path[], typereq_t type)
             uint8_t buf[MAXBUF];
             rio_t rio;
             Rio_readinitb(&rio, fd);
-            Rio_readnb(&rio, buf, MAXBUF);
+            
+            size_t n = Rio_readnb(&rio, buf, MAXBUF - 1);
+            buf[n] = '\0';
+
             encode_response(response, buf);
             write_response(response, connfd);
             free(response);

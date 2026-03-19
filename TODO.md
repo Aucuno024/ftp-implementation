@@ -6,7 +6,7 @@
 - [x] ***(Question 2)*** Définir la structure de donnée des requêtes (implémenter `request_t`) 
 - [x] ***(Question 3)*** cp du tp sur la partie ECHO + Définir le squelette des différentes composantes (bonne modularité)
 - [x] ***(Question 4)*** Gestion du boutisme
-- [ ] ***(Question 5)*** Définir les répertoires de travail par défaut côté client et côté serveur (distincts pour permettre une exécution sur la même machine)
+- [X] ***(Question 5)*** Définir les répertoires de travail par défaut côté client et côté serveur (distincts pour permettre une exécution sur la même machine)
 
 ### Gestion Serveur
 
