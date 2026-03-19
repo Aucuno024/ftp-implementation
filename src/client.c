@@ -22,17 +22,24 @@ int command_parser(const char *cmd, typereq_t *typereq, char *path) {
         return 1;
     }
     uint8_t command[MAXLINE];
-    if (sscanf(cmd, "%s %s", command, path) != 2) {
-        return 2;
-    }
-
-    if (strcmp((char *) command, "get") == 0) {
+    
+    // Parser le premier mot (commande)
+    int n_args = sscanf(cmd, "%s %s", command, path);
+    
+    if (strcmp((char *) command, "bye") == 0) {
+        *typereq = BYE;
+        return 0;  // BYE n'a pas d'argument
+    } else if (strcmp((char *) command, "get") == 0) {
+        if (n_args != 2) return 2;
         *typereq = GET;
     } else if (strcmp((char *) command, "put") == 0) {
+        if (n_args != 2) return 2;
         *typereq = PUT;
     } else if (strcmp((char *) command, "ls") == 0) {
+        if (n_args != 2) return 2;
         *typereq = LS;
     } else if (strcmp((char *) command, "rm") == 0) {
+        if (n_args != 2) return 2;
         *typereq = RM;
     } else {
         return 1;
@@ -69,8 +76,24 @@ int main(int argc, char **argv)
     printf("client connected to server OS\n"); 
     
     request_t request;
-    printf("ftp> ");
-    if (Fgets(buf, MAXLINE, stdin) != NULL) {
+    
+    while (1) {
+        printf("ftp> ");
+        if (Fgets(buf, MAXLINE, stdin) == NULL) {
+            // EOF sur stdin
+            printf("\n");  // Nouvelle ligne après EOF
+            
+            // Envoyer BYE pour fermer la connexion
+            typereq_t typereq = BYE;
+            encode_request(&request, typereq, "");
+            write_request(&request, clientfd);
+            
+            // Lire la réponse BYE du serveur
+            response_t response;
+            read_response(&response, clientfd);
+            break;
+        }
+        
         typereq_t typereq;
         int err = command_parser(buf, &typereq, buf);
         if (err != 0) {
@@ -78,55 +101,65 @@ int main(int argc, char **argv)
             if (err == 2) {
                 printf("Format incorrect. Usage: <command> <path>\n");
             } else if (err == 1) {
-                printf("Nom de commande invalide. Commandes valides: get, put, ls, rm\n");
+                printf("Nom de commande invalide. Commandes valides: get, put, ls, rm, bye\n");
             }
-        } else {
+            continue; 
+        }
 
-            size_t n = strlen(buf);
-            if (n > 0 && buf[n-1] == '\n') buf[n-1] = '\0';
+        size_t n = strlen(buf);
+        if (n > 0 && buf[n-1] == '\n') buf[n-1] = '\0';
 
-            encode_request(&request, typereq, buf);
-            write_request(&request, clientfd);
+        encode_request(&request, typereq, buf);
+        write_request(&request, clientfd);
+        
+        // Traitement selon le type de requête
+        time_t start_time = time(NULL);
+        
+        if (typereq == GET) {
+            // Pour GET réception du fichier par blocs
+            char filename[MAXLINE];
+            strcpy(filename, buf);
             
-            // Traitement selon le type de requête
-            time_t start_time = time(NULL);
+            transfer_header_t header;
+            int result = receive_file_by_blocks(clientfd, filename, &header);
             
-            if (typereq == GET) {
-                // Pour GET: réception du fichier par blocs
-                char filename[MAXLINE];
-                strcpy(filename, buf);
+            if (result == NO_ERROR_R) {
+                time_t end_time = time(NULL);
+                long duration = end_time - start_time;
+                if (duration == 0) duration = 1; 
+                long speed = (header.total_size / duration) / 1024;
                 
-                transfer_header_t header;
-                int result = receive_file_by_blocks(clientfd, filename, &header);
-                
-                if (result == NO_ERROR_R) {
-                    time_t end_time = time(NULL);
-                    long duration = end_time - start_time;
-                    if (duration == 0) duration = 1; 
-                    long speed = (header.total_size / duration) / 1024;
-                    
-                    printf("Transfer successfully complete:\n");
-                    printf("%u bytes received in %ld seconds (%ld Kbytes/s)\n", 
-                           header.total_size, duration, speed);
-                } else {
-                    printf("File transfer failed with error %d\n", result);
-                }
+                printf("Transfer successfully complete:\n");
+                printf("%u bytes received in %ld seconds (%ld Kbytes/s)\n", header.total_size, duration, speed);
             } else {
-                // Pour autres requêtes: lecture d'une réponse simple
+                printf("File transfer failed with error %d\n", result);
+            }
+        } else if (typereq == BYE) {
+            // Lire la réponse BYE et fermer la connexion
+            response_t response;
+            if (read_response(&response, clientfd) == 0) {
                 uint8_t content[MAXLINE];
                 uint8_t error;
-                response_t response;
-                
-                if (read_response(&response, clientfd) == 0 && decode_response(&response, content, &error) == 0) {
-                    if (error == NO_ERROR_R) {
-                        printf("Command completed successfully\n");
-                        printf("Response: %s\n", content);
-                    } else {
-                        printf("Command failed with error %d: %s\n", error, (char *)content);
-                    }
-                } else {
-                    printf("Failed to receive response\n");
+                if (decode_response(&response, content, &error) == 0) {
+                    printf("Response: %s\n", content);
                 }
+            }
+            break;
+        } else {
+            // Pour autres requêtes: lecture d'une réponse simple
+            uint8_t content[MAXLINE];
+            uint8_t error;
+            response_t response;
+            
+            if (read_response(&response, clientfd) == 0 && decode_response(&response, content, &error) == 0) {
+                if (error == NO_ERROR_R) {
+                    printf("Command completed successfully\n");
+                    printf("Response: %s\n", content);
+                } else {
+                    printf("Command failed with error %d: %s\n", error, (char *)content);
+                }
+            } else {
+                printf("Failed to receive response\n");
             }
         }
     }

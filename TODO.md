@@ -29,7 +29,7 @@
 - [X] ***(Question 8)*** Découpage en blocs de taille fixe : définir le protocole (taille de bloc, nombre de blocs communiqué au client avant envoi), envoi et réception par blocs (création d'une structure de paquet)
 
 ### Plusieurs fichiers par connexion
-- [ ] ***(Question 9)*** Gérer plusieurs demande de fichiers par connexion (terminer avec la commande "bye" par le client)
+- [X] ***(Question 9)*** Gérer plusieurs demande de fichiers par connexion (terminer avec la commande "bye" par le client)
 
 ### Gestion deconnexions et reprise de transfert
 - [ ] ***(Question 10)*** Côté serveur : détecter la déconnexion du client (voir "FTP-SR-vania.pdf" pour savoir comment détecter) et nettoyer proprement les structures système
