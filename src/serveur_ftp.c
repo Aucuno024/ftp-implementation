@@ -102,7 +102,7 @@ int main(int argc, char **argv)
                     printf("%s say \"\t- type de requete : %d\"\n", SPEAKER, typereq);
                     printf("%s say \"\t- chemin : %s\"\n", SPEAKER, path);
                     #endif
-                    if (send_response(connfd, path, typereq) == CLIENT_DISCONNECTED_R && typereq == GET) {
+                    if (send_response(connfd, path, typereq) == CLIENT_DISCONNECTED_R && (typereq == GET || typereq == RESUME)) {
                         #ifdef DEBUG
                             printf("%s say \"Client disconnected during transfer\"\n", SPEAKER);
                         #endif

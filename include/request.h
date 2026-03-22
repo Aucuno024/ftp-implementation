@@ -8,7 +8,8 @@ typedef enum {
     PUT = 1,
     LS = 2,
     RM = 3,
-    BYE = 4
+    BYE = 4,
+    RESUME = 5
 } typereq_t;
 
 typedef struct {

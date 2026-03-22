@@ -136,9 +136,21 @@ int receive_data_block(int connfd, data_block_t *block, rio_t *rio);
  */
 int receive_file_by_blocks(int connfd, char path[], transfer_header_t *header_out);
 
+/**
+ * @brief Reçoit un fichier par blocs avec reprise automatique depuis start_offset
+ * @param connfd socket de connexion
+ * @param remote_path chemin distant (utilisé dans le .part.meta)
+ * @param local_path chemin local cible (sans suffixe .part)
+ * @param start_offset offset déjà reçu côté client
+ * @param header_out pointeur pour récupérer le header
+ * @return 0 si ok, code erreur sinon
+ */
+int receive_file_by_blocks_resume(int connfd, char remote_path[], char local_path[], uint32_t start_offset, transfer_header_t *header_out);
+
 #define NO_ERROR_R 0
 #define PATH_ERROR_R 1
 #define TYPE_ERROR_R 2
 #define ERROR_READ_REQUEST 3
 #define CLIENT_DISCONNECTED_R 4
+#define OFFSET_ERROR_R 5
 #endif

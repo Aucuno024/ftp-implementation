@@ -33,7 +33,7 @@
 
 ### Gestion deconnexions et reprise de transfert
 - [x] ***(Question 10)*** Côté serveur : détecter la déconnexion du client (voir "FTP-SR-vania.pdf" pour savoir comment détecter) et nettoyer proprement les structures système
-- [ ] ***(Question 10)*** Côté client : stocker localement l'avancement du transfert (fichier caché, log…) pour permettre la reprise au relancement
+- [x] ***(Question 10)*** Côté client : stocker localement l'avancement du transfert (fichier caché, log…) pour permettre la reprise au relancement
 
 ---
 
