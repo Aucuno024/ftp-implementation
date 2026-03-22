@@ -32,7 +32,7 @@
 - [X] ***(Question 9)*** Gérer plusieurs demande de fichiers par connexion (terminer avec la commande "bye" par le client)
 
 ### Gestion deconnexions et reprise de transfert
-- [ ] ***(Question 10)*** Côté serveur : détecter la déconnexion du client (voir "FTP-SR-vania.pdf" pour savoir comment détecter) et nettoyer proprement les structures système
+- [x] ***(Question 10)*** Côté serveur : détecter la déconnexion du client (voir "FTP-SR-vania.pdf" pour savoir comment détecter) et nettoyer proprement les structures système
 - [ ] ***(Question 10)*** Côté client : stocker localement l'avancement du transfert (fichier caché, log…) pour permettre la reprise au relancement
 
 ---

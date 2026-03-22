@@ -12,6 +12,22 @@
 #include <time.h>
 #endif
 
+/**
+ * @brief Ecrit tous les octets du buffer dans le socket, avec gestion des erreurs
+ * @param fd le descripteur de fichier du socket
+ * @param buf le buffer à écrire
+ * @param len la taille du buffer
+ * @return int 0 si l'écriture a réussi, 1 sinon
+ */
+static int socket_write_all(int fd, const void *buf, size_t len) {
+    ssize_t nw = rio_writen(fd, (void *)buf, len);
+    if (nw != (ssize_t)len) {
+        return 1;
+    }
+    return 0;
+}
+
+
 int swap_endian_response(response_t *response) {
     if (response == NULL) {
         return 1;
@@ -33,7 +49,10 @@ int read_response(response_t *response, int connfd) {
 }
 
 void write_response(response_t *response, int connfd) {
-    Rio_writen(connfd, response, sizeof(response_t));
+    if (response == NULL) {
+        return;
+    }
+    socket_write_all(connfd, response, sizeof(response_t));
 }
 
 int encode_response(response_t *response, const uint8_t *content) {
@@ -78,8 +97,7 @@ int send_transfer_header(int connfd, uint32_t total_size) {
     header.block_size = BLOCK_SIZE;
     header.error = NO_ERROR_R;
     
-    Rio_writen(connfd, &header, sizeof(transfer_header_t));
-    return 0;
+    return socket_write_all(connfd, &header, sizeof(transfer_header_t));
 }
 
 int send_data_block(int connfd, uint16_t block_num, const uint8_t *data, uint16_t data_size) {
@@ -93,8 +111,7 @@ int send_data_block(int connfd, uint16_t block_num, const uint8_t *data, uint16_
     block.data_size = data_size;
     memcpy(block.data, data, data_size);
     
-    Rio_writen(connfd, &block, sizeof(data_block_t));
-    return 0;
+    return socket_write_all(connfd, &block, sizeof(data_block_t));
 }
 
 int send_file_by_blocks(int connfd, char path[]) {
@@ -111,7 +128,9 @@ int send_file_by_blocks(int connfd, char path[]) {
         error_header.total_size = 0;
         error_header.block_size = BLOCK_SIZE;
         error_header.error = PATH_ERROR_R;
-        Rio_writen(connfd, &error_header, sizeof(transfer_header_t));
+        if (socket_write_all(connfd, &error_header, sizeof(transfer_header_t)) != 0) {
+            return CLIENT_DISCONNECTED_R;
+        }
         return PATH_ERROR_R;
     }
     
@@ -124,7 +143,9 @@ int send_file_by_blocks(int connfd, char path[]) {
         error_header.total_size = 0;
         error_header.block_size = BLOCK_SIZE;
         error_header.error = PATH_ERROR_R;
-        Rio_writen(connfd, &error_header, sizeof(transfer_header_t));
+        if (socket_write_all(connfd, &error_header, sizeof(transfer_header_t)) != 0) {
+            return CLIENT_DISCONNECTED_R;
+        }
         return PATH_ERROR_R;
     }
     
@@ -133,7 +154,7 @@ int send_file_by_blocks(int connfd, char path[]) {
     // Envoyer le header de transfert
     if (send_transfer_header(connfd, file_size) != 0) {
         Close(fd);
-        return 1;
+        return CLIENT_DISCONNECTED_R;
     }
     
     // Envoyer le fichier par blocs
@@ -158,7 +179,7 @@ int send_file_by_blocks(int connfd, char path[]) {
         // Envoyer le bloc
         if (send_data_block(connfd, block_num, buffer, (uint16_t)n) != 0) {
             Close(fd);
-            return 1;
+            return CLIENT_DISCONNECTED_R;
         }
         
         total_sent += n;

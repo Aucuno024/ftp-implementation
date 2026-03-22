@@ -123,7 +123,7 @@ int receive_transfer_header(int connfd, transfer_header_t *header, rio_t *rio);
  * @param connfd socket de connexion
  * @param block pointeur où stocker le bloc reçu
  * @param rio buffer rio pour les lectures
- * @return 0 si ok, 1 sinon
+ * @return 0 si ok, 1 sinon (par exemple si le client s'est déconnecté)
  */
 int receive_data_block(int connfd, data_block_t *block, rio_t *rio);
 
@@ -140,4 +140,5 @@ int receive_file_by_blocks(int connfd, char path[], transfer_header_t *header_ou
 #define PATH_ERROR_R 1
 #define TYPE_ERROR_R 2
 #define ERROR_READ_REQUEST 3
+#define CLIENT_DISCONNECTED_R 4
 #endif
