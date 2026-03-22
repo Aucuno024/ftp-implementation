@@ -8,7 +8,9 @@
 #include <arpa/inet.h>
 #include "utils.h"
 
-
+#ifdef DELAY
+#include <time.h>
+#endif
 
 int swap_endian_response(response_t *response) {
     if (response == NULL) {
@@ -153,6 +155,12 @@ int send_file_by_blocks(int connfd, char path[]) {
         
         total_sent += n;
         block_num++;
+        #ifdef DELAY
+        // Simuler un delai
+        if (total_sent < file_size) {
+            sleep(DELAY);
+        }
+        #endif
     }
     
     Close(fd);
