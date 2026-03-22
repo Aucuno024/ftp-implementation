@@ -40,8 +40,11 @@ int encode_response(response_t *response, const uint8_t *content) {
     if (response == NULL || content == NULL) {
         return 1;
     }
+    memset(response, 0, sizeof(*response));
     response->endian = get_endianess();
-    strncpy((char *)response->content, (const char *)content, MAXLINE);
+    response->error = NO_ERROR_R;
+    strncpy((char *)response->content, (const char *)content, MAXLINE - 1);
+    response->content[MAXLINE - 1] = '\0';
     return 0;
 }
 
@@ -51,7 +54,8 @@ int decode_response(response_t *response, uint8_t *content, uint8_t *error) {
     }
     if (response->endian != get_endianess() && swap_endian_response(response) != 0) return 1;
     
-    strncpy((char *)content, (const char *)response->content, MAXLINE);
+    strncpy((char *)content, (const char *)response->content, MAXLINE - 1);
+    content[MAXLINE - 1] = '\0';
     *error = response->error;
     return 0;
 }
@@ -68,6 +72,7 @@ int swap_endian_header(transfer_header_t *header) {
 
 int send_transfer_header(int connfd, uint32_t total_size) {
     transfer_header_t header;
+    memset(&header, 0, sizeof(header));
     header.endian = get_endianess();
     header.total_size = total_size;
     header.block_size = BLOCK_SIZE;
@@ -83,6 +88,7 @@ int send_data_block(int connfd, uint16_t block_num, const uint8_t *data, uint16_
     }
     
     data_block_t block;
+    memset(&block, 0, sizeof(block));
     block.block_num = block_num;
     block.data_size = data_size;
     memcpy(block.data, data, data_size);
@@ -100,6 +106,7 @@ int send_file_by_blocks(int connfd, char path[]) {
     if (!open_file_r(path, &fd)) {
         // Envoyer un header avec erreur
         transfer_header_t error_header;
+        memset(&error_header, 0, sizeof(error_header));
         error_header.endian = get_endianess();
         error_header.total_size = 0;
         error_header.block_size = BLOCK_SIZE;
@@ -112,6 +119,7 @@ int send_file_by_blocks(int connfd, char path[]) {
     if (fstat(fd, &st) < 0) {
         Close(fd);
         transfer_header_t error_header;
+        memset(&error_header, 0, sizeof(error_header));
         error_header.endian = get_endianess();
         error_header.total_size = 0;
         error_header.block_size = BLOCK_SIZE;
@@ -271,6 +279,9 @@ int send_response(int connfd, char path[], typereq_t type)
             
         case BYE:
             response = malloc(sizeof(response_t));
+            if (response == NULL) {
+                return 1;
+            }
             encode_response(response, (const uint8_t*) "BYE\n");
             write_response(response, connfd);
             free(response);
@@ -278,8 +289,14 @@ int send_response(int connfd, char path[], typereq_t type)
             
         default:
             response = malloc(sizeof(response_t));
+            if (response == NULL) {
+                return 1;
+            }
+            memset(response, 0, sizeof(*response));
             response->error = TYPE_ERROR_R;
             response->endian = get_endianess();
+            write_response(response, connfd);
+            free(response);
             return TYPE_ERROR_R;
     }
 }
@@ -287,6 +304,10 @@ int send_response(int connfd, char path[], typereq_t type)
 void send_error(int connfd, uint8_t error) 
 {
     response_t *response = malloc(sizeof(response_t));
+    if (response == NULL) {
+        return;
+    }
+    memset(response, 0, sizeof(*response));
     response->error = error;
     response->endian = get_endianess();
     write_response(response, connfd);
