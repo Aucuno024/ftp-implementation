@@ -2,8 +2,12 @@
 #include "request.h"
 #include "response.h"
 
-#define PORT 2121
+#ifndef SLAVE_PORT
+#define SLAVE_PORT 1212
+#endif
+
 #define MAX_NAME_LEN 256
+
 #ifndef POOL_SIZE
 #define POOL_SIZE 20
 #endif
@@ -55,7 +59,7 @@ int main(int argc, char **argv)
 
     clientlen = (socklen_t)sizeof(clientaddr);
 
-    listenfd = Open_listenfd(PORT);
+    listenfd = Open_listenfd(SLAVE_PORT);
     #ifdef DEBUG
         printf("%s say \"client len :%u listenfd : %d\"\n", SPEAKER, clientlen, listenfd);
     #endif
@@ -108,7 +112,6 @@ int main(int argc, char **argv)
                         #endif
                         break;
                     }
-                    
 
                     #ifdef DEBUG
                         printf("%s say \"Request send\"\n", SPEAKER);

@@ -4,7 +4,7 @@ CC=gcc
 SRCDIR=src
 OBJDIR=obj
 
-EXEC=client serveur_ftp
+EXEC=client serveur_ftp master_dns
 EXECDIR=bin
 SRCS=$(wildcard $(SRCDIR)/*.c)
 OBJS = $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
@@ -26,6 +26,10 @@ else
 DEFAULT_CLIENT_DIR=clientdir
 endif
 
+ifdef SLAVE_PORT
+CPPFLAGS++ -DSLAVE_PORT=$(SLAVE_PORT)
+endif
+
 ifdef DELAY
 $(shell touch $(SRCDIR)/response.c)
 CPPFLAGS+= -DDELAY=$(DELAY)
@@ -37,14 +41,18 @@ all: make_dir $(addprefix $(EXECDIR)/,$(EXEC))
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 
-# per-target object lists (take care: each exe has its own main)
+
 CLIENT_OBJS := $(OBJDIR)/client.o $(OBJDIR)/csapp.o $(OBJDIR)/request.o $(OBJDIR)/utils.o $(OBJDIR)/response.o
 SERVER_OBJS := $(OBJDIR)/serveur_ftp.o $(OBJDIR)/csapp.o $(OBJDIR)/request.o $(OBJDIR)/utils.o $(OBJDIR)/response.o
+MASTER_OBJS := $(OBJDIR)/master_dns.o $(OBJDIR)/csapp.o $(OBJDIR)/request.o $(OBJDIR)/utils.o $(OBJDIR)/response.o
 
 $(EXECDIR)/client: $(CLIENT_OBJS)
 	$(CC) -o $@ $(LDFLAGS) $^ $(LIBS)
 
 $(EXECDIR)/serveur_ftp: $(SERVER_OBJS)
+	$(CC) -o $@ $(LDFLAGS) $^ $(LIBS)
+
+$(EXECDIR)/master_dns: $(MASTER_OBJS)
 	$(CC) -o $@ $(LDFLAGS) $^ $(LIBS)
 
 make_dir:

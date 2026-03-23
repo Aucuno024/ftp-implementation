@@ -8,10 +8,11 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include "utils.h"
-#define PORT 2121
 
+#define PORT 2121
 #define PART_SUFFIX ".part"
 #define META_SUFFIX ".part.meta"
+#define SPEAKER "Al"
 
 
 /**
@@ -345,31 +346,77 @@ int command_parser(const char *cmd, typereq_t *typereq, char *path) {
 }
 
 
+int get_cred(int *port, char *host, int clientfd)
+{
+    request_t request;
+    encode_request(&request, GET, "");
+    write_request(&request, clientfd);
+
+    response_t response;
+    read_response(&response, clientfd);
+
+    uint8_t content[MAXLINE], error;
+    if(decode_response(&response, content, &error))
+        return -2;
+    if(error)
+        return error;
+    #ifdef DEBUG
+            fprintf(stdout, "%s say \"Content : %s\"\n", SPEAKER, content);
+        #endif
+    int i;
+    for(i = 0; content[i] != ':' && i < INET6_ADDRSTRLEN; i++)
+    {
+        #ifdef DEBUG
+            fprintf(stdout, "%s say \"Value : %c\"\n", SPEAKER, content[i]);
+        #endif
+        host[i] = content[i];
+    }
+    host[i] = '\0';
+    #ifdef DEBUG
+        fprintf(stdout, "%s say \"Host get :%s\"\n", SPEAKER, host);
+    #endif
+    char *strport = strchr((char*) content, ':');
+    if(!strport)
+        return -1;
+    *port = atoi(++strport);
+    return error;
+}
+
 
 
 int main(int argc, char **argv)
 {
     int clientfd;
-    char *host, buf[MAXLINE];
+    char *master, buf[MAXLINE], host[INET_ADDRSTRLEN];
+    int port;
 
     if (argc != 2) {
         fprintf(stderr, "usage: %s <host>\n", argv[0]);
         exit(0);
     }
-    host = argv[1];
+    master = argv[1];
 
     /*
      * Note that the 'host' can be a name or an IP address.
      * If necessary, Open_clientfd will perform the name resolution
      * to obtain the IP address.
      */
-    clientfd = Open_clientfd(host, PORT);
+    clientfd = Open_clientfd(master, PORT);
     
     /*
      * At this stage, the connection is established between the client
      * and the server OS ... but it is possible that the server application
      * has not yet called "Accept" for this connection
      */
+    printf("client connected to server Master\n"); 
+    int err;
+    if((err = get_cred(&port, host, clientfd)))
+    {
+        printf("Erreur : aucun acces disponible a un slave %d\n", err);
+        exit(err);
+    }
+    Close(clientfd);
+    clientfd = Open_clientfd(host, port);
     printf("client connected to server OS\n"); 
 
     auto_resume_downloads(clientfd);

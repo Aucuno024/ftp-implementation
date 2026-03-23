@@ -63,7 +63,9 @@ int write_file_to_client_dir(char path[], const uint8_t *content)
     }
     return write_file_from_content(path, content);
 }
+
 int is_relative_path(char path[])
 {
     return path[0] == '~' || path[0] == '/'? 0: 1;
 }
+
