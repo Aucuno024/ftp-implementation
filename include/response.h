@@ -151,7 +151,7 @@ int receive_file_by_blocks_resume(int connfd, char remote_path[], char local_pat
 #define PATH_ERROR_R 1
 #define TYPE_ERROR_R 2
 #define ERROR_READ_REQUEST 3
-#define MAX_SLAVE_ERROR 6
 #define CLIENT_DISCONNECTED_R 4
 #define OFFSET_ERROR_R 5
+#define SLAVE_ERROR 6
 #endif

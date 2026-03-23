@@ -381,7 +381,7 @@ int send_response(int connfd, char path[], typereq_t type)
             write_response(response, connfd);
             free(response);
             return NO_ERROR_R;
-            
+
         default:
             response = malloc(sizeof(response_t));
             if (response == NULL) {

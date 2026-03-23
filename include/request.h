@@ -9,7 +9,6 @@ typedef enum {
     LS = 2,
     RM = 3,
     BYE = 4,
-    ADD = 6,
     RESUME = 5
 } typereq_t;
 
