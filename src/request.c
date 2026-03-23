@@ -37,9 +37,11 @@ int encode_request(request_t *request, typereq_t typereq, const char *path) {
     if (request == NULL || path == NULL) {
         return 1;
     }
+    memset(request, 0, sizeof(*request));
     request->endian = get_endianess();
     request->typereq = typereq;
-    strncpy(request->path, path, MAXLINE);
+    strncpy(request->path, path, MAXLINE - 1);
+    request->path[MAXLINE - 1] = '\0';
     return 0;
 }
 
@@ -50,7 +52,8 @@ int decode_request(request_t *request, typereq_t *typereq, char *path) {
     if (request->endian != get_endianess() && swap_endian_request(request) != 0) return 1;
     
     *typereq = request->typereq;
-    strncpy(path, request->path, MAXLINE);
+    strncpy(path, request->path, MAXLINE - 1);
+    path[MAXLINE - 1] = '\0';
     return 0;
 }
 

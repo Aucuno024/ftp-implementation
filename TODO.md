@@ -6,7 +6,7 @@
 - [x] ***(Question 2)*** Définir la structure de donnée des requêtes (implémenter `request_t`) 
 - [x] ***(Question 3)*** cp du tp sur la partie ECHO + Définir le squelette des différentes composantes (bonne modularité)
 - [x] ***(Question 4)*** Gestion du boutisme
-- [ ] ***(Question 5)*** Définir les répertoires de travail par défaut côté client et côté serveur (distincts pour permettre une exécution sur la même machine)
+- [X] ***(Question 5)*** Définir les répertoires de travail par défaut côté client et côté serveur (distincts pour permettre une exécution sur la même machine)
 
 ### Gestion Serveur
 
@@ -26,14 +26,14 @@
 
 
 ### Plusieurs paquets par requête
-- [ ] ***(Question 8)*** Découpage en blocs de taille fixe : définir le protocole (taille de bloc, nombre de blocs communiqué au client avant envoi), envoi et réception par blocs (création d'une structure de paquet)
+- [X] ***(Question 8)*** Découpage en blocs de taille fixe : définir le protocole (taille de bloc, nombre de blocs communiqué au client avant envoi), envoi et réception par blocs (création d'une structure de paquet)
 
 ### Plusieurs fichiers par connexion
-- [ ] ***(Question 9)*** Gérer plusieurs demande de fichiers par connexion (terminer avec la commande "bye" par le client)
+- [X] ***(Question 9)*** Gérer plusieurs demande de fichiers par connexion (terminer avec la commande "bye" par le client)
 
 ### Gestion deconnexions et reprise de transfert
-- [ ] ***(Question 10)*** Côté serveur : détecter la déconnexion du client (voir "FTP-SR-vania.pdf" pour savoir comment détecter) et nettoyer proprement les structures système
-- [ ] ***(Question 10)*** Côté client : stocker localement l'avancement du transfert (fichier caché, log…) pour permettre la reprise au relancement
+- [x] ***(Question 10)*** Côté serveur : détecter la déconnexion du client (voir "FTP-SR-vania.pdf" pour savoir comment détecter) et nettoyer proprement les structures système
+- [x] ***(Question 10)*** Côté client : stocker localement l'avancement du transfert (fichier caché, log…) pour permettre la reprise au relancement
 
 ---
 

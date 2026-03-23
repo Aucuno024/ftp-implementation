@@ -11,6 +11,13 @@
 #define SPEAKER "Raccoon"
 
 
+#ifdef DEBUG
+void handler_pipe(int signal) 
+{
+    printf("%s say \"Received SIGPIPE\"\n", SPEAKER);
+}
+#endif
+
 void handler_chld(int signal) 
 {
     wait(NULL);
@@ -35,6 +42,11 @@ int main(int argc, char **argv)
 {
     Signal(SIGCHLD, handler_chld);
     Signal(SIGINT, handler_int);
+    #ifdef DEBUG
+    Signal(SIGPIPE, handler_pipe);
+    #else
+    Signal(SIGPIPE, SIG_IGN);
+    #endif
     int listenfd, connfd;
     socklen_t clientlen;
     struct sockaddr_in clientaddr;
@@ -76,7 +88,6 @@ int main(int argc, char **argv)
                             printf("%s say \"Failed to read request (size: %ld)\"\n", SPEAKER, sizeof(request_t));
                         #endif
                         free(request);
-                        send_error(connfd, ERROR_READ_REQUEST);
                         break;
                     }
 
@@ -91,7 +102,12 @@ int main(int argc, char **argv)
                     printf("%s say \"\t- type de requete : %d\"\n", SPEAKER, typereq);
                     printf("%s say \"\t- chemin : %s\"\n", SPEAKER, path);
                     #endif
-                    send_response(connfd, path, typereq);
+                    if (send_response(connfd, path, typereq) == CLIENT_DISCONNECTED_R && (typereq == GET || typereq == RESUME)) {
+                        #ifdef DEBUG
+                            printf("%s say \"Client disconnected during transfer\"\n", SPEAKER);
+                        #endif
+                        break;
+                    }
                     
 
                     #ifdef DEBUG

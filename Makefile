@@ -26,6 +26,11 @@ else
 DEFAULT_CLIENT_DIR=clientdir
 endif
 
+ifdef DELAY
+$(shell touch $(SRCDIR)/response.c)
+CPPFLAGS+= -DDELAY=$(DELAY)
+endif
+
 
 all: make_dir $(addprefix $(EXECDIR)/,$(EXEC))
 
