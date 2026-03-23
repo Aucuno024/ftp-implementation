@@ -3,7 +3,7 @@
 #include "response.h"
 
 #ifndef SLAVE_PORT
-#define SLAVE_PORT 1212
+#define SLAVE_PORT 2121
 #endif
 #define MAX_NAME_LEN 256
 #ifndef POOL_SIZE
