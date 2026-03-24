@@ -146,7 +146,14 @@ int receive_file_by_blocks(int connfd, char path[], transfer_header_t *header_ou
  * @return 0 si ok, code erreur sinon
  */
 int receive_file_by_blocks_resume(int connfd, char remote_path[], char local_path[], uint32_t start_offset, transfer_header_t *header_out);
-
+/**
+ * @fn receive_content(int connfd, int out)
+ * @brief Recoit un contenu par block sans reprise automatique
+ * @param connfd socket de connexion
+ * @param outfd sortie du contenu
+ * @return 0 si ok, code erreur sinon
+ */
+int receive_content(int connfd, int outfd);
 #define NO_ERROR_R 0
 #define PATH_ERROR_R 1
 #define TYPE_ERROR_R 2

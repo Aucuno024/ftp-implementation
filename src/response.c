@@ -15,6 +15,8 @@
 #include <time.h>
 #endif
 
+#define SPEAKER "Speaker"
+
 /**
  * @brief Ecrit tous les octets du buffer dans le socket, avec gestion des erreurs
  * @param fd le descripteur de fichier du socket
@@ -389,6 +391,23 @@ int send_file_by_blocks(int connfd, char path[]) {
     return send_file_by_blocks_from_offset(connfd, path, 0);
 }
 
+int send_content(int connfd, char *content, size_t size)
+{
+    if(send_transfer_header(connfd, size))
+        return CLIENT_DISCONNECTED_R;
+    
+    int block_num = 0;
+    for(int i = 0; i < size; i += BLOCK_SIZE)
+    {
+        #ifdef DELAY
+            sleep(1);
+        #endif
+        if(send_data_block(connfd, block_num++, content+i, i + BLOCK_SIZE <= size? BLOCK_SIZE: size - i))
+            return CLIENT_DISCONNECTED_R;
+    }
+    return NO_ERROR_R;
+}
+
 int send_response(int connfd, char path[], typereq_t type)
 {
     response_t *response;
@@ -417,6 +436,16 @@ int send_response(int connfd, char path[], typereq_t type)
             write_response(response, connfd);
             free(response);
             return NO_ERROR_R;
+        
+        case LS:
+            char *content = NULL;
+            if(list_dir(path, &content))
+            {
+                #ifdef DEBUG
+                    printf("%s say \"Erreur : %s\"\n", SPEAKER, content);
+                #endif
+                if(content)
+                    free(content);
 
         case RM:
             response = malloc(sizeof(response_t));
@@ -438,6 +467,25 @@ int send_response(int connfd, char path[], typereq_t type)
             free(response);
             return NO_ERROR_R;
 
+                response = malloc(sizeof(response_t));
+                if (response == NULL)
+                    return -1;
+                 
+                response->endian = get_endianess();
+                encode_response(response, (uint8_t *) "CANT LIST\n");
+                response->error = PATH_ERROR_R;
+
+                write_response(response, connfd);
+
+                free(response);
+                return PATH_ERROR_R;
+            }
+            #ifdef DEBUG
+                    printf("%s say \"Parfait: %s\"\n", SPEAKER, content);
+                #endif
+            int r = send_content(connfd, content, strlen(content)); 
+            free(content);
+            return r;
         default:
             response = malloc(sizeof(response_t));
             if (response == NULL) {
@@ -451,6 +499,8 @@ int send_response(int connfd, char path[], typereq_t type)
             return TYPE_ERROR_R;
     }
 }
+
+
 
 int receive_transfer_header(int connfd, transfer_header_t *header, rio_t *rio) {
     if (header == NULL || rio == NULL) {
@@ -594,7 +644,29 @@ int receive_file_by_blocks_resume(int connfd, char remote_path[], char local_pat
     return NO_ERROR_R;
 }
 
+int receive_content(int connfd, int out)
+{
+    transfer_header_t header;
+    data_block_t block;
+    rio_t rio;
+    uint32_t total_received = 0;
 
+    Rio_readinitb(&rio, connfd);
+    if(receive_transfer_header(connfd, &header, &rio))
+        return 1;
+    if(header.error != NO_ERROR_R)
+        return header.error;
+
+    while(total_received < header.total_size)
+    {
+        if(receive_data_block(connfd, &block, &rio))
+            return CLIENT_DISCONNECTED_R;
+        if(write(out, block.data, block.data_size) < 0)
+            return 1;
+        total_received += block.data_size;
+    }
+    return NO_ERROR_R;
+}
 
 void send_error(int connfd, uint8_t error) 
 {
