@@ -12,13 +12,14 @@ int get_endianess() {
 }
 
 /**
- * @brief Vérification si le fichier a ouvrir est dans le dossier du serveur
+ * @brief Vérification si le fichier abs_path a ouvrir est dans le dossier dirpath 
  * @param abs_path le chemin absolu du fichier a ouvrir
+ * @param dirpath le chemin du dossier du serveur
  * @return int 1 si le fichier est dans le dossier du serveur, 0 sinon
  */
-int is_path_in_server_dir(const char *abs_path) {
+int is_path_in_dirpath(const char *abs_path, const char * dirpath) {
     char server_dir_abs[MAXLINE];
-    if (realpath(DEFAULT_SERVER_DIR, server_dir_abs) == NULL) {
+    if (realpath(dirpath, server_dir_abs) == NULL) {
         return 0;
     }
     size_t dir_len = strlen(server_dir_abs);
@@ -27,11 +28,12 @@ int is_path_in_server_dir(const char *abs_path) {
 
 
 /** 
- * @brief Convertir un chemin en chemin absolu depuis le dossier du serveur
+ * @brief Convertir un chemin en chemin absolu depuis le dossier dirpath
  * @param path le chemin à convertir
  * @param abs_path le buffer où stocker le chemin absolu converti
+ * @param dirpath le chemin du dossier du serveur
  */
-void convert_to_abs_path(const char *path, char *abs_path) {
+void convert_to_abs_path(const char *path, char *abs_path, const char *dirpath) {
     char temp_path[MAXLINE];
     if (path == NULL || abs_path == NULL) {
         abs_path[0] = '\0'; // chemin invalide
@@ -39,10 +41,10 @@ void convert_to_abs_path(const char *path, char *abs_path) {
     }
     if (path[0] == '/') {
         // chemin absolu
-        snprintf(temp_path, MAXLINE, "%s%s", DEFAULT_SERVER_DIR, path + 1);
+        snprintf(temp_path, MAXLINE, "%s%s", dirpath, path + 1);
     } else {
         // chemin relatif
-        snprintf(temp_path, MAXLINE, "%s/%s", DEFAULT_SERVER_DIR, path);
+        snprintf(temp_path, MAXLINE, "%s/%s", dirpath, path);
     }
     // convertir le chemin du serveur en chemin absolu
     if (realpath(temp_path, abs_path) == NULL) {
@@ -50,27 +52,28 @@ void convert_to_abs_path(const char *path, char *abs_path) {
     }
 }
 /**
- * @brief Fourni le chemin vers le serveur à partir d'un chemin donné, en vérifiant que le chemin résultant est bien dans le dossier du serveur
+ * @brief Fourni le chemin absolu vers le serveur à partir d'un chemin donné, en vérifiant que le chemin résultant est bien dans le dossier du dirpath
  * @param path le chemin à convertir
- * @param server_path le buffer où stocker le chemin vers le serveur
+ * @param server_path le buffer où stocker le chemin absolu vers le serveur
+ * @param dirpath le chemin du dossier du serveur
  * @return int 1 si le chemin est valide et dans le dossier du serveur, 0 sinon
  */
-int build_server_path(const char *path, char *server_path) {
-    convert_to_abs_path(path, server_path);
-    if (server_path[0] == '\0' || !is_path_in_server_dir(server_path)) {
+int get_abs_dest_path_from_src_path(const char *path, char *server_path, const char *dirpath) {
+    convert_to_abs_path(path, server_path, dirpath);
+    if (server_path[0] == '\0' || !is_path_in_dirpath(server_path, dirpath)) {
         return 0;
     }
     return 1;
 }
 
 
-int open_file_r(char path[], int *fd)
+int open_file_r(char path[], int *fd, const char *dirpath)
 {
     if (path == NULL || fd == NULL) {
         return 0;
     }
     char abs_path[MAXLINE];
-    if (!build_server_path(path, abs_path)) {
+    if (!get_abs_dest_path_from_src_path(path, abs_path, dirpath)) {
         return 0;
     }
     return (*fd = open(abs_path, O_RDONLY, 0)) != -1;
@@ -87,15 +90,15 @@ int write_file_from_content(char path[], const uint8_t *content)
     return 1;
 }
 
-int write_file_to_client_dir(char path[], const uint8_t *content)
+int write_file_to_dest_dir(char path[], const uint8_t *content, const char *dirpath)
 {
     if(is_relative_path(path))
     {
-        char *newpath = malloc(strlen(path) + strlen(DEFAULT_CLIENT_DIR) + 1);
+        char *newpath = malloc(strlen(path) + strlen(dirpath) + 1);
         int i;
-        for(i = 0; DEFAULT_CLIENT_DIR[i] != '\0'; i++)
+        for(i = 0; dirpath[i] != '\0'; i++)
         {
-            newpath[i] = DEFAULT_CLIENT_DIR[i];
+            newpath[i] = dirpath[i];
         }
         for(int j = 0; path[j] != '\0'; j++)
         {

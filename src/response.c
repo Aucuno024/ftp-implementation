@@ -313,13 +313,13 @@ int send_data_block(int connfd, uint16_t block_num, const uint8_t *data, uint16_
 }
 
 
-static int send_file_by_blocks_from_offset(int connfd, char path[], uint32_t start_offset) {
+static int send_file_by_blocks_from_offset(int connfd, char path[], uint32_t start_offset, char *srcdir) {
     int fd;
     struct stat st;
     uint32_t file_size = 0;
     
     // Ouvrir le fichier en lecture d'abord
-    if (!open_file_r(path, &fd)) {
+    if (!open_file_r(path, &fd, srcdir)) {
         return send_error_header(connfd, PATH_ERROR_R);
     }
     
@@ -387,8 +387,8 @@ static int send_file_by_blocks_from_offset(int connfd, char path[], uint32_t sta
 }
 
 
-int send_file_by_blocks(int connfd, char path[]) {
-    return send_file_by_blocks_from_offset(connfd, path, 0);
+int send_file_by_blocks(int connfd, char path[], char *srcdir) {
+    return send_file_by_blocks_from_offset(connfd, path, 0, srcdir);
 }
 
 int send_content(int connfd, char *content, size_t size)
@@ -408,14 +408,14 @@ int send_content(int connfd, char *content, size_t size)
     return NO_ERROR_R;
 }
 
-int send_response(int connfd, char path[], typereq_t type)
+int send_server_response(int connfd, char path[], typereq_t type)
 {
     response_t *response;
     
     switch(type)
     {
         case GET:
-            return send_file_by_blocks(connfd, path);
+            return send_file_by_blocks(connfd, path, DEFAULT_SERVER_DIR);
 
         case RESUME: {
             char resume_path[MAXLINE];
@@ -424,7 +424,7 @@ int send_response(int connfd, char path[], typereq_t type)
                 send_error(connfd, TYPE_ERROR_R);
                 return TYPE_ERROR_R;
             }
-            return send_file_by_blocks_from_offset(connfd, resume_path, start_offset);
+            return send_file_by_blocks_from_offset(connfd, resume_path, start_offset, DEFAULT_SERVER_DIR);
         }
             
         case BYE:

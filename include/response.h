@@ -73,7 +73,7 @@ int decode_response(response_t *response, uint8_t *content, uint8_t *error);
  * @param type le type de requete
  * @return code d'erreur associe a la reponse
  */
-int send_response(int connfd, char path[], typereq_t type);
+int send_server_response(int connfd, char path[], typereq_t type);
 
 /**
  * @fn void send_error(int connfd, int error)
@@ -102,12 +102,13 @@ int send_transfer_header(int connfd, uint32_t total_size);
 int send_data_block(int connfd, uint16_t block_num, const uint8_t *data, uint16_t data_size);
 
 /**
- * @brief Envoie un fichier complet par blocs au client
+ * @brief Envoie un fichier complet par blocs
  * @param connfd socket de connexion
  * @param path chemin du fichier
+ * @param srcdir le dossier source pour les chemins relatifs
  * @return 0 si ok, code erreur sinon
  */
-int send_file_by_blocks(int connfd, char path[]);
+int send_file_by_blocks(int connfd, char path[], char *srcdir);
 
 /**
  * @brief Reçoit un header de transfert depuis le serveur

@@ -17,12 +17,13 @@ int get_endianess();
 
 /**
  * @fn int open_file_r(char path[], int *fd)
- * @brief Ouvre un fichier a un chemin donnee dans fd
+ * @brief Ouvre un fichier a un chemin donnee dans fd, en verifiant que le chemin est valide et dans le dossier dirpath
  * @param path le chemin vers le fichier
  * @param fd le parametre recevant le descripteur
+ * @param dirpath le chemin du dossier du serveur
  * @return 1 si tout s'est bien passé 0
  */
-int open_file_r(char path[], int *fd);
+int open_file_r(char path[], int *fd, const char *dirpath);
 
 /**
  * @brief Ecrit le contenu dans un fichier a un chemin donnee
@@ -33,12 +34,13 @@ int open_file_r(char path[], int *fd);
 int write_file_from_content(char path[], const uint8_t *content);
 
 /**
- * @brief Ecrit le contenu dans un fichier a un chemin donnee dans DEFAULT_CLIENT_DIR pour les chemins relatifs
+ * @brief Ecrit le contenu dans un fichier a un chemin donnee dans le dossier destdir
  * @param path le chemin vers le fichier
  * @param content le contenu a ecrire dans le fichier
+ * @param dirpath le chemin du dossier de destination
  * @return 1 si tout s'est bien passé 0 sinon
  */
-int write_file_to_client_dir(char path[], const uint8_t *content);
+int write_file_to_dest_dir(char path[], const uint8_t *content, const char *dirpath);
 
 /**
  * @fn int is_relative_path(char path[])
