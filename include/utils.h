@@ -58,4 +58,14 @@ int is_relative_path(char path[]);
  * @return 0 si réussi sans probleme 1 sinon
  */
 int list_dir(char *path, char **content);
+
+/**
+ * @brief Fourni le chemin absolu à partir d'un chemin donné, en vérifiant que le chemin résultant est bien dans le dossier du dirpath
+ * @param path le chemin à convertir
+ * @param server_path le buffer où stocker le chemin absolu vers le serveur
+ * @param dirpath le chemin du dossier du serveur
+ * @return int 1 si le chemin est valide et dans le dossier du serveur, 0 sinon
+ */
+int get_abs_dest_path_from_src_path(const char *path, char *server_path, const char *dirpath);
+
 #endif

@@ -408,6 +408,32 @@ int send_content(int connfd, char *content, size_t size)
     return NO_ERROR_R;
 }
 
+// rm command
+
+/**
+ * @brief Supprime un fichier du serveur, en construisant le chemin complet à partir du chemin donné et du répertoire source, et en gérant les erreurs de suppression
+ * 
+ * @param path 
+ * @param srcdir 
+ * @return int 
+ */
+int remove_file(char path[], char *srcdir) {
+    char full_path[MAXLINE];
+    if (get_abs_dest_path_from_src_path(path, full_path, srcdir) != 1) {
+        return 2; // erreur de chemin
+    }
+    if (unlink(full_path) == 0) {
+        return 0; // succès
+    } else {
+        if (errno == ENOENT) {
+            return 1; // fichier non trouvé
+        } else {
+            return 2; // autre erreur
+        }
+    }
+}
+
+
 int send_server_response(int connfd, char path[], typereq_t type)
 {
     response_t *response;
@@ -458,7 +484,19 @@ int send_server_response(int connfd, char path[], typereq_t type)
             if (response == NULL) {
                 return 1;
             }
-            encode_response(response, (const uint8_t*) "RM\n");
+            char rep_text[MAXLINE];
+
+            switch (remove_file(path, DEFAULT_SERVER_DIR)) {
+                case 0:
+                    snprintf(rep_text, sizeof(rep_text), "File %s removed successfully\n", path);
+                    break;
+                case 1:
+                    snprintf(rep_text, sizeof(rep_text), "Error: File %s not found\n", path);
+                    break;
+                default:
+                    snprintf(rep_text, sizeof(rep_text), "Error: Could not remove file %s\n", path);
+            }
+            encode_response(response, (const uint8_t*) rep_text);
             write_response(response, connfd);
             free(response);
             return NO_ERROR_R;

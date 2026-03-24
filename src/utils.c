@@ -51,13 +51,6 @@ void convert_to_abs_path(const char *path, char *abs_path, const char *dirpath) 
         abs_path[0] = '\0'; // chemin invalide
     }
 }
-/**
- * @brief Fourni le chemin absolu vers le serveur à partir d'un chemin donné, en vérifiant que le chemin résultant est bien dans le dossier du dirpath
- * @param path le chemin à convertir
- * @param server_path le buffer où stocker le chemin absolu vers le serveur
- * @param dirpath le chemin du dossier du serveur
- * @return int 1 si le chemin est valide et dans le dossier du serveur, 0 sinon
- */
 int get_abs_dest_path_from_src_path(const char *path, char *server_path, const char *dirpath) {
     convert_to_abs_path(path, server_path, dirpath);
     if (server_path[0] == '\0' || !is_path_in_dirpath(server_path, dirpath)) {

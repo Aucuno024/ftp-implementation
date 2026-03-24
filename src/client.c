@@ -455,6 +455,7 @@ int main(int argc, char **argv)
         size_t n = strlen(buf);
         if (n > 0 && buf[n-1] == '\n') buf[n-1] = '\0';
         uint8_t error = 0;
+        response_t response;
         switch (typereq)
         {
         case GET:
@@ -470,7 +471,6 @@ int main(int argc, char **argv)
             write_request(&request, clientfd);
 
             // Lire la réponse BYE et fermer la connexion
-            response_t response;
             if (read_response(&response, clientfd) == 0) {
                 uint8_t content[MAXLINE];
                 uint8_t error;
@@ -492,6 +492,19 @@ int main(int argc, char **argv)
             if((error = receive_content(clientfd, STDOUT_FILENO)))
             {
                 printf("Erreur %d\n", error);
+            }
+            break;
+        case RM:
+            encode_request(&request, typereq, buf);
+            write_request(&request, clientfd);
+
+            // Lire la réponse RM 
+            if (read_response(&response, clientfd) == 0) {
+                uint8_t content[MAXLINE];
+                uint8_t error;
+                if (decode_response(&response, content, &error) == 0) {
+                    printf("Response: %s\n", content);
+                }
             }
             break;
         default:

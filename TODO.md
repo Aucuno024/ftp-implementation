@@ -40,9 +40,9 @@
 ## Etape III – Répartition de charge
 
 ### Architecture maître-esclaves
-- [x] ***(Question 11***) Implémenter un serveur maître (constante `NB_SLAVES`, port dédié aux esclaves (différent de 2121))
-- [x] ***(Question 12***) Implémenter l'interconnexion avec les esclaves (le maître établit `NB_SLAVES` connexions)
-- [x] ***(Question 13***) Adapter le protocole client : après connexion au maître, recevoir les infos de l'esclave désigné, puis se connecter directement à celui-ci.
+- [x] ***(Question 11)*** Implémenter un serveur maître (constante `NB_SLAVES`, port dédié aux esclaves (différent de 2121))
+- [x] ***(Question 12)*** Implémenter l'interconnexion avec les esclaves (le maître établit `NB_SLAVES` connexions)
+- [x] ***(Question 13)*** Adapter le protocole client : après connexion au maître, recevoir les infos de l'esclave désigné, puis se connecter directement à celui-ci.
 - [ ] ***(Question 14 BONUS)*** Reconnexion en cas de panne d'un esclave.
 
 ---
@@ -50,11 +50,12 @@
 ## Etape IV – Opérations avancées
 
 ### Opérations sur les fichiers
-- [x] ***(Question 15***) Implémenter commande `ls` : retourner le contenu du répertoire courant du serveur.
-- [ ] ***(Question 16***) Implémenter commandes `rm` et `put` : suppression / téléversement de fichier ;
+- [x] ***(Question 15)*** Implémenter commande `ls` : retourner le contenu du répertoire courant du serveur.
+- [ ] ***(Question 16)*** Implémenter commandes `rm` et `put` : suppression / téléversement de fichier ;
+- [ ] ***(Question 16)*** Implémenter la cohérence faible
 
 ### Sécurité
-- [ ] ***(Question 17***) Authentification : système login/mot de passe requis pour `rm` et `put` ; échec si non authentifié au préalable
+- [ ] ***(Question 17)*** Authentification : système login/mot de passe requis pour `rm` et `put` ; échec si non authentifié au préalable
 
 ---
 
