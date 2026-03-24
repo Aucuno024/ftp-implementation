@@ -1,3 +1,4 @@
+rm -rf clientdir/*
 make clean
 make DEBUG=1
 

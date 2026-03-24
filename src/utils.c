@@ -158,7 +158,7 @@ int update(char **content, char *element)
 int list_dir(char *path, char **content) 
 {
     char server_path[MAXBUF];
-    if(!build_server_path(path, server_path))
+    if(!get_abs_dest_path_from_src_path(path, server_path, DEFAULT_SERVER_DIR))
     {
         #ifdef DEBUG
             printf("%s say \"Path non etendu : %s\"\n", SPEAKER, path);
