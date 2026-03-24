@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <arpa/inet.h>
 #include "utils.h"
@@ -73,6 +74,41 @@ static int build_partial_paths(const char *base_path, char *part_path, size_t pa
     }
     if (snprintf(meta_path, meta_size, "%s.part.meta", base_path) >= (int)meta_size) {
         return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Crée recursivement les répertoires parents d'un chemin de fichier
+ * @param file_path  le chemin complet du fichier
+ * @return int 0 si succes, 1 sinon
+ */
+static int ensure_parent_dirs(const char *file_path) {
+    char tmp[MAXLINE];
+    char *p;
+
+    if (file_path == NULL) {
+        return 1;
+    }
+
+    if (snprintf(tmp, sizeof(tmp), "%s", file_path) >= (int)sizeof(tmp)) {
+        return 1;
+    }
+    p = tmp;
+    if (*p == '/') {
+        p++;
+    }
+    for (; *p != '\0'; p++) {
+        if (*p != '/') {
+            continue;
+        }
+
+        *p = '\0';
+        if (tmp[0] != '\0' && mkdir(tmp, 0755) != 0 && errno != EEXIST) { // mettre les perms a 0755 
+            return 1;
+        }
+        *p = '/';
     }
 
     return 0;
@@ -382,6 +418,26 @@ int send_response(int connfd, char path[], typereq_t type)
             free(response);
             return NO_ERROR_R;
 
+        case RM:
+            response = malloc(sizeof(response_t));
+            if (response == NULL) {
+                return 1;
+            }
+            encode_response(response, (const uint8_t*) "RM\n");
+            write_response(response, connfd);
+            free(response);
+            return NO_ERROR_R;
+
+        case PUT:
+            response = malloc(sizeof(response_t));
+            if (response == NULL) {
+                return 1;
+            }
+            encode_response(response, (const uint8_t*) "PUT\n");
+            write_response(response, connfd);
+            free(response);
+            return NO_ERROR_R;
+
         default:
             response = malloc(sizeof(response_t));
             if (response == NULL) {
@@ -467,7 +523,9 @@ int receive_file_by_blocks_resume(int connfd, char remote_path[], char local_pat
     if (build_partial_paths(final_path, part_path, sizeof(part_path), meta_path, sizeof(meta_path)) != 0) {
         return 1;
     }
-
+    if (ensure_parent_dirs(part_path) != 0) {
+        return 1;
+    }
     fd = Open(part_path, O_CREAT | O_WRONLY, DEF_MODE);
     if (fd < 0) {
         return 1;
