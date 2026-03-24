@@ -37,7 +37,7 @@ endif
 
 
 all: make_dir $(addprefix $(EXECDIR)/,$(EXEC))
-
+re: clean all
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@
 

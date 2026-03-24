@@ -422,8 +422,8 @@ int main(int argc, char **argv)
     auto_resume_downloads(clientfd);
     
     request_t request;
-    
-    while (1) {
+    int loop = 1;
+    while (loop) {
         printf("ftp> ");
         if (Fgets(buf, MAXLINE, stdin) == NULL) {
             // EOF sur stdin
@@ -454,15 +454,19 @@ int main(int argc, char **argv)
 
         size_t n = strlen(buf);
         if (n > 0 && buf[n-1] == '\n') buf[n-1] = '\0';
-
-        if (typereq == GET) {
+        uint8_t error = 0;
+        response_t response;
+        switch (typereq)
+        {
+        case GET:
             uint32_t resume_offset = 0;
             if (maybe_get_resume_offset(buf, &resume_offset)) {
                 perform_download(clientfd, buf, resume_offset, 0);
             } else {
                 perform_download(clientfd, buf, 0, 0);
             }
-        } else if (typereq == BYE) {
+            break;
+        case BYE:
             encode_request(&request, typereq, "");
             write_request(&request, clientfd);
 
@@ -475,16 +479,28 @@ int main(int argc, char **argv)
                     printf("Response: %s\n", content);
                 }
             }
+            loop = 0;
             break;
-        } else {
+        case LS:
+            request_t request;
+            
+            if(encode_request(&request, LS, buf))
+            {
+                printf("Erreur lors de la creation de la requete\n");
+                break;
+            }
+            write_request(&request, clientfd);
+            if((error = receive_content(clientfd, STDOUT_FILENO)))
+            {
+                printf("Erreur %d\n", error);
+            }
+            break;
+        default:
             encode_request(&request, typereq, buf);
             write_request(&request, clientfd);
 
             // Pour autres requêtes: lecture d'une réponse simple
             uint8_t content[MAXLINE];
-            uint8_t error;
-            response_t response;
-            
             if (read_response(&response, clientfd) == 0 && decode_response(&response, content, &error) == 0) {
                 if (error == NO_ERROR_R) {
                     printf("Command completed successfully\n");
@@ -495,6 +511,7 @@ int main(int argc, char **argv)
             } else {
                 printf("Failed to receive response\n");
             }
+            break;
         }
     }
     Close(clientfd);
