@@ -127,7 +127,7 @@ int update(char **content, char *element)
         }
         (*content)[s] = '\0';
         #ifdef DEBUG
-            printf("%s say \"content value : %s\"\n", SPEAKER, content);
+            printf("%s say \"content value : %s\"\n", SPEAKER, *content);
         #endif
         return 0;
     }
@@ -143,7 +143,7 @@ int update(char **content, char *element)
     }
     (*content)[sc + s + 1] = '\0';
     #ifdef DEBUG
-            printf("%s say \"Content value : %s\"\n", SPEAKER, content);
+            printf("%s say \"Content value : %s\"\n", SPEAKER, *content);
     #endif
     return 0;
 }
@@ -189,7 +189,7 @@ int list_dir(char *path, char **content)
         if(update(content, de->d_name))
         {
              #ifdef DEBUG
-                printf("%s say \"Erreur: %s\"\n", SPEAKER, content);
+                printf("%s say \"Erreur: %s\"\n", SPEAKER, *content);
             #endif
             return 1;
         }
