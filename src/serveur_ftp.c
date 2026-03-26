@@ -76,8 +76,7 @@ int main(int argc, char **argv)
                 #ifdef DEBUG
                     printf("%s say \"Server connected to %s (%s)\"\n", SPEAKER, client_hostname, client_ip_string);
                 #endif
-                log_t *log;
-                int is_update = 0;
+                log_t *log = NULL;
                 while(1) {
                     request_t* request = malloc(sizeof(request_t));
 
@@ -101,8 +100,6 @@ int main(int argc, char **argv)
 
                     decode_request(request, &typereq, path);
                     free(request);
-                    if(typereq == UPDATE)
-                        is_update = 1;
                     #ifdef DEBUG
                     printf("%s say \"%ld bytes reçu\"\n", SPEAKER, strlen(path));
                     printf("%s say \"\t- type de requete : %d\"\n", SPEAKER, typereq);

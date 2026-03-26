@@ -403,7 +403,7 @@ int send_content(int connfd, char *content, size_t size)
         #ifdef DELAY
             sleep(1);
         #endif
-        if(send_data_block(connfd, block_num++, content+i, i + BLOCK_SIZE <= size? BLOCK_SIZE: size - i))
+        if(send_data_block(connfd, block_num++, (const uint8_t *)(content+i), i + BLOCK_SIZE <= size? BLOCK_SIZE: size - i))
             return CLIENT_DISCONNECTED_R;
     }
     return NO_ERROR_R;
