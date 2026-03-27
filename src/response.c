@@ -25,7 +25,7 @@
  * @param len la taille du buffer
  * @return int 0 si l'écriture a réussi, 1 sinon
  */
-int socket_write_all(int fd, const void *buf, size_t len) {
+static int socket_write_all(int fd, const void *buf, size_t len) {
     ssize_t nw = rio_writen(fd, (void *)buf, len);
     if (nw != (ssize_t)len) {
         return 1;
@@ -40,7 +40,7 @@ int socket_write_all(int fd, const void *buf, size_t len) {
  * @param dest_size la taille du buffer de destination
  * @return int 0 si le chemin a été construit, 1 sinon
  */
-int build_client_dest_path(const char *path, char *dest, size_t dest_size) {
+static int build_client_dest_path(const char *path, char *dest, size_t dest_size) {
     if (path == NULL || dest == NULL || dest_size == 0) {
         return 1;
     }
@@ -67,7 +67,7 @@ int build_client_dest_path(const char *path, char *dest, size_t dest_size) {
  * @param meta_size  la taille du buffer meta_path
  * @return int 
  */
-int build_partial_paths(const char *base_path, char *part_path, size_t part_size, char *meta_path, size_t meta_size) {
+static int build_partial_paths(const char *base_path, char *part_path, size_t part_size, char *meta_path, size_t meta_size) {
     if (base_path == NULL || part_path == NULL || meta_path == NULL) {
         return 1;
     }
@@ -87,7 +87,7 @@ int build_partial_paths(const char *base_path, char *part_path, size_t part_size
  * @param file_path  le chemin complet du fichier
  * @return int 0 si succes, 1 sinon
  */
-int ensure_parent_dirs(const char *file_path) {
+static int ensure_parent_dirs(const char *file_path) {
     char tmp[MAXLINE];
     char *p;
 
@@ -125,7 +125,7 @@ int ensure_parent_dirs(const char *file_path) {
  * @param offset  l'offset déjà reçu du fichier
  * @return int 
  */
-int write_part_meta(const char *meta_path, const char *remote_path, uint32_t offset) {
+static int write_part_meta(const char *meta_path, const char *remote_path, uint32_t offset) {
     char tmp_path[MAXLINE];
     FILE *f;
 
@@ -168,7 +168,7 @@ int write_part_meta(const char *meta_path, const char *remote_path, uint32_t off
  * @param error  le code d'erreur à envoyer
  * @return int 
  */
-int send_error_header(int connfd, uint8_t error) {
+static int send_error_header(int connfd, uint8_t error) {
     transfer_header_t error_header;
     memset(&error_header, 0, sizeof(error_header));
     error_header.endian = get_endianess();
@@ -190,7 +190,7 @@ int send_error_header(int connfd, uint8_t error) {
  * @param offset_out  un pointeur où stocker l'offset de reprise extrait
  * @return int 
  */
-int parse_resume_data(const char *data, char *path_out, size_t path_out_size, uint32_t *offset_out) {
+static int parse_resume_data(const char *data, char *path_out, size_t path_out_size, uint32_t *offset_out) {
     const char *sep;
     size_t path_len;
     char *endptr;
@@ -314,7 +314,7 @@ int send_data_block(int connfd, uint16_t block_num, const uint8_t *data, uint16_
 }
 
 
-int send_file_by_blocks_from_offset(int connfd, char path[], uint32_t start_offset, char *srcdir) {
+static int send_file_by_blocks_from_offset(int connfd, char path[], uint32_t start_offset, char *srcdir) {
     int fd;
     struct stat st;
     uint32_t file_size = 0;
@@ -403,7 +403,7 @@ int send_content(int connfd, char *content, size_t size)
         #ifdef DELAY
             sleep(1);
         #endif
-        if(send_data_block(connfd, block_num++, (const uint8_t *)(content+i), i + BLOCK_SIZE <= size? BLOCK_SIZE: size - i))
+        if(send_data_block(connfd, block_num++, content+i, i + BLOCK_SIZE <= size? BLOCK_SIZE: size - i))
             return CLIENT_DISCONNECTED_R;
     }
     return NO_ERROR_R;
@@ -437,7 +437,8 @@ int remove_file(char path[], char *srcdir) {
 int send_server_response(int connfd, char path[], typereq_t type, log_t *log)
 {
     response_t *response;
-    
+    (void)log;
+
     switch(type)
     {
         case GET:
@@ -452,7 +453,7 @@ int send_server_response(int connfd, char path[], typereq_t type, log_t *log)
             }
             return send_file_by_blocks_from_offset(connfd, resume_path, start_offset, DEFAULT_SERVER_DIR);
         }
-            
+
         case BYE:
             response = malloc(sizeof(response_t));
             if (response == NULL) {
@@ -462,215 +463,115 @@ int send_server_response(int connfd, char path[], typereq_t type, log_t *log)
             write_response(response, connfd);
             free(response);
             return NO_ERROR_R;
-        
-        case LS:
+
+        case LS: {
             char *content = NULL;
-            if(list_dir(path, &content))
-            {
-                #ifdef DEBUG
-                    printf("%s say \"Erreur : %s\"\n", SPEAKER, content);
-                #endif
-                if(content)
+            int r;
+            if (list_dir(path, &content) || content == NULL) {
+                send_error(connfd, PATH_ERROR_R);
+                if (content) {
                     free(content);
+                }
+                return PATH_ERROR_R;
             }
-            #ifdef DEBUG
-                    printf("%s say \"Parfait: %s\"\n", SPEAKER, content);
-                #endif
-            int r = send_content(connfd, content, strlen(content)); 
+            r = send_content(connfd, content, strlen(content));
             free(content);
             return r;
-        case RM:
-            #ifdef DEBUG
-                printf("%s say \"Dans le RM\"\n", SPEAKER);
-            #endif
-            add(&log, type, path);
+        }
+
+        case RM: {
+            char rep_text[MAXLINE];
+            int rm_result;
             response = malloc(sizeof(response_t));
             if (response == NULL) {
                 return 1;
             }
-            char rep_text[MAXLINE];
 
-            switch (remove_file(path, DEFAULT_SERVER_DIR)) {
+            rm_result = remove_file(path, DEFAULT_SERVER_DIR);
+            switch (rm_result) {
                 case 0:
                     snprintf(rep_text, sizeof(rep_text), "File %s removed successfully\n", path);
+                    rm_result = NO_ERROR_R;
                     break;
                 case 1:
                     snprintf(rep_text, sizeof(rep_text), "Error: File %s not found\n", path);
+                    rm_result = PATH_ERROR_R;
                     break;
                 default:
                     snprintf(rep_text, sizeof(rep_text), "Error: Could not remove file %s\n", path);
+                    rm_result = PATH_ERROR_R;
+                    break;
             }
-            encode_response(response, (const uint8_t*) rep_text);
-            #ifdef DEBUG
-                printf("%s say \"envoie %s\"\n", SPEAKER, rep_text);
-            #endif
+            encode_response(response, (const uint8_t*)rep_text);
+            response->error = rm_result;
+            write_response(response, connfd);
+            free(response);
+            return rm_result;
+        }
+
+        case PUT:
+            response = malloc(sizeof(response_t));
+            if (response == NULL) {
+                return 1;
+            }
+            encode_response(response, (const uint8_t*) "PUT\n");
             write_response(response, connfd);
             free(response);
             return NO_ERROR_R;
 
-        case PUT:
-            add(&log, type, path);
+        case UPDATE: {
+            char update_copy[MAXLINE];
+            char *sep;
+            char *endptr;
+            long parsed_type;
+            typereq_t forwarded_type;
+            char *forwarded_path;
+
+            strncpy(update_copy, path, sizeof(update_copy) - 1);
+            update_copy[sizeof(update_copy) - 1] = '\0';
+            sep = strchr(update_copy, '\n');
+            if (sep == NULL) {
+                send_error(connfd, TYPE_ERROR_R);
+                return TYPE_ERROR_R;
+            }
+
+            *sep = '\0';
+            forwarded_path = sep + 1;
+            parsed_type = strtol(update_copy, &endptr, 10);
+            if (endptr == update_copy || *endptr != '\0') {
+                send_error(connfd, TYPE_ERROR_R);
+                return TYPE_ERROR_R;
+            }
+            forwarded_type = (typereq_t)parsed_type;
+
             response = malloc(sizeof(response_t));
             if (response == NULL) {
                 return 1;
             }
-            encode_response(response, (const uint8_t*) "READY_PUT");
+
+            if (forwarded_type == RM) {
+                if (remove_file(forwarded_path, DEFAULT_SERVER_DIR) == 0) {
+                    encode_response(response, (const uint8_t *)"UPDATE RM OK\n");
+                    response->error = NO_ERROR_R;
+                } else {
+                    encode_response(response, (const uint8_t *)"UPDATE RM ERROR\n");
+                    response->error = PATH_ERROR_R;
+                }
+            } else if (forwarded_type == PUT) {
+                encode_response(response, (const uint8_t *)"UPDATE PUT IGNORED\n");
+                response->error = NO_ERROR_R;
+            } else {
+                free(response);
+                send_error(connfd, TYPE_ERROR_R);
+                return TYPE_ERROR_R;
+            }
+
             write_response(response, connfd);
+            parsed_type = response->error;
             free(response);
-            {
-                int put_result = receive_file_by_blocks_to_path(connfd, path, DEFAULT_SERVER_DIR, 0, NULL);
-                if (put_result == CLIENT_DISCONNECTED_R) {
-                    return CLIENT_DISCONNECTED_R;
-                }
-
-        case UPDATE: {
-            char *sep;
-            char *endptr;
-            long parsed_type;
-            typereq_t forwarded_type;
-            char *forwarded_path;
-
-            sep = strchr(path, '\n');
-            if (sep == NULL) {
-                send_error(connfd, TYPE_ERROR_R);
-                return TYPE_ERROR_R;
-            }
-
-            *sep = '\0';
-            forwarded_path = sep + 1;
-
-            parsed_type = strtol(path, &endptr, 10);
-            if (endptr == path || *endptr != '\0') {
-                send_error(connfd, TYPE_ERROR_R);
-                return TYPE_ERROR_R;
-            }
-
-            forwarded_type = (typereq_t)parsed_type;
-
-            if (forwarded_type == RM) {
-                int rm_result = remove_file(forwarded_path, DEFAULT_SERVER_DIR);
-                int update_error = NO_ERROR_R;
-                response = malloc(sizeof(response_t));
-                if (response == NULL) {
-                    return 1;
-                }
-                if (rm_result == 0) {
-                    encode_response(response, (const uint8_t *)"UPDATE RM OK\n");
-                    response->error = NO_ERROR_R;
-                    update_error = NO_ERROR_R;
-                } else if (rm_result == 1) {
-                    encode_response(response, (const uint8_t *)"UPDATE RM NOT FOUND\n");
-                    response->error = PATH_ERROR_R;
-                    update_error = PATH_ERROR_R;
-                } else {
-                    encode_response(response, (const uint8_t *)"UPDATE RM ERROR\n");
-                    response->error = PATH_ERROR_R;
-                    update_error = PATH_ERROR_R;
-                }
-                write_response(response, connfd);
-                free(response);
-                return update_error;
-            }
-
-            if (forwarded_type == PUT) {
-                response = malloc(sizeof(response_t));
-                if (response == NULL) {
-                    return 1;
-                }
-                encode_response(response, (const uint8_t *)"UPDATE PUT IGNORED\n");
-                response->error = NO_ERROR_R;
-                write_response(response, connfd);
-                free(response);
-                return NO_ERROR_R;
-            }
-
-            send_error(connfd, TYPE_ERROR_R);
-            return TYPE_ERROR_R;
+            return (int)parsed_type;
         }
 
-        case UPDATE: {
-            char *sep;
-            char *endptr;
-            long parsed_type;
-            typereq_t forwarded_type;
-            char *forwarded_path;
-
-            sep = strchr(path, '\n');
-            if (sep == NULL) {
-                send_error(connfd, TYPE_ERROR_R);
-                return TYPE_ERROR_R;
-            }
-
-            *sep = '\0';
-            forwarded_path = sep + 1;
-
-            parsed_type = strtol(path, &endptr, 10);
-            if (endptr == path || *endptr != '\0') {
-                send_error(connfd, TYPE_ERROR_R);
-                return TYPE_ERROR_R;
-            }
-
-            forwarded_type = (typereq_t)parsed_type;
-
-            if (forwarded_type == RM) {
-                int rm_result = remove_file(forwarded_path, DEFAULT_SERVER_DIR);
-                int update_error = NO_ERROR_R;
-                response = malloc(sizeof(response_t));
-                if (response == NULL) {
-                    return 1;
-                }
-                if (rm_result == 0) {
-                    encode_response(response, (const uint8_t *)"UPDATE RM OK\n");
-                    response->error = NO_ERROR_R;
-                    update_error = NO_ERROR_R;
-                } else if (rm_result == 1) {
-                    encode_response(response, (const uint8_t *)"UPDATE RM NOT FOUND\n");
-                    response->error = PATH_ERROR_R;
-                    update_error = PATH_ERROR_R;
-                } else {
-                    encode_response(response, (const uint8_t *)"UPDATE RM ERROR\n");
-                    response->error = PATH_ERROR_R;
-                    update_error = PATH_ERROR_R;
-                }
-                write_response(response, connfd);
-                free(response);
-                return update_error;
-            }
-
-            if (forwarded_type == PUT) {
-                response = malloc(sizeof(response_t));
-                if (response == NULL) {
-                    return 1;
-                }
-                encode_response(response, (const uint8_t *)"UPDATE PUT IGNORED\n");
-                response->error = NO_ERROR_R;
-                write_response(response, connfd);
-                free(response);
-                return NO_ERROR_R;
-            }
-
-            send_error(connfd, TYPE_ERROR_R);
-            return TYPE_ERROR_R;
-        }
-
-                response = malloc(sizeof(response_t));
-                if (response == NULL) {
-                    return 1;
-                }
-
-                if (put_result == NO_ERROR_R) {
-                    encode_response(response, (const uint8_t*) "PUT completed successfully");
-                } else {
-                    char put_error_text[MAXLINE];
-                    snprintf(put_error_text, sizeof(put_error_text), "PUT failed with error %d", put_result);
-                    encode_response(response, (const uint8_t*) put_error_text);
-                    response->error = put_result;
-                }
-
-                write_response(response, connfd);
-                free(response);
-                return put_result;
-            }
         default:
             response = malloc(sizeof(response_t));
             if (response == NULL) {
@@ -722,164 +623,13 @@ int receive_data_block(int connfd, data_block_t *block, rio_t *rio) {
     return 0;
 }
 
-
-
-
-
-
-
-
-
-
-
-/* Structures intermédiaires pour le contexte de la callback de progression */
-// Structure de contexte pour la progression des métadonnées lors de la réception d'un fichier par blocs
-typedef int (*receive_progress_cb_t)(uint32_t total_received, void *ctx);
-
-// Structure de contexte pour la callback de progression des métadonnées, contenant les chemins nécessaires pour mettre à jour les métadonnées
-struct meta_progress_ctx {
-    const char *meta_path;
-    const char *remote_path;
-};
-
-
-// Fonction de callback pour la progression des métadonnées, uniquement pour le GET
-int on_meta_progress_cb(uint32_t received, void *ctx_ptr) {
-    struct meta_progress_ctx *ctx = (struct meta_progress_ctx *)ctx_ptr;
-    return write_part_meta(ctx->meta_path, ctx->remote_path, received);
-}
-
-/**
- * @brief Reçoit un fichier complet par blocs et l'écrit dans un descripteur de fichier, en gérant les erreurs et en permettant une reprise avec un offset de départ et une callback de progression pour les métadonnées
- * 
- * @param rio le rio associé au socket de connexion pour lire les données 
- * @param fd  le descripteur de fichier où écrire les données reçues
- * @param total_size  la taille totale du fichier à recevoir
- * @param start_offset  l'offset de départ pour la reprise (0 pour un transfert normal)
- * @param total_received_out  un pointeur pour récupérer la taille totale reçue à la fin de la fonction (peut être NULL si non nécessaire)
- * @param on_progress  un pointeur vers la fonction de callback pour la progression (peut être NULL si non nécessaire)
- * @param progress_ctx  un pointeur vers le contexte à passer à la callback de progression (peut être NULL si non nécessaire)
- * @return int 
- */
-int receive_file_by_blocks_to_fd_internal(rio_t *rio, int fd, uint32_t total_size, uint32_t start_offset,  uint32_t *total_received_out, receive_progress_cb_t on_progress, void *progress_ctx) {
-    data_block_t block;
-    uint32_t total_received;
-
-    if (rio == NULL || fd < 0) {
-        return 1;
-    }
-
-    total_received = start_offset;
-
-    while (total_received < total_size) {
-        if (receive_data_block(0, &block, rio) != 0) {
-            return CLIENT_DISCONNECTED_R;
-        }
-        if (block.data_size > BLOCK_SIZE || total_received + block.data_size > total_size) {
-            return TYPE_ERROR_R;
-        }
-        if (rio_writen(fd, block.data, block.data_size) != (ssize_t)block.data_size) {
-            return PATH_ERROR_R;
-        }
-        total_received += block.data_size;
-
-        if (on_progress != NULL && on_progress(total_received, progress_ctx) != 0) {
-            return 1;
-        }
-    }
-
-    if (total_received_out != NULL) {
-        *total_received_out = total_received;
-    }
-
-    return NO_ERROR_R;
-}
-
-
-/**
- * @brief Reçoit un fichier complet par blocs et l'écrit dans un descripteur de fichier, en gérant les erreurs et en permettant une reprise avec un offset de départ, sans callback de progression pour les métadonnées
- * 
- * @param rio 
- * @param fd 
- * @param total_size 
- * @param start_offset 
- * @param total_received_out 
- * @return int 
- */
-int receive_file_by_blocks_to_fd(rio_t *rio, int fd, uint32_t total_size, uint32_t start_offset, uint32_t *total_received_out) {
-    return receive_file_by_blocks_to_fd_internal(rio, fd, total_size, start_offset, total_received_out, NULL, NULL);
-}
-
-/**
- * @brief Reçoit un fichier complet par blocs et l'écrit dans un chemin de fichier, en construisant le chemin complet à partir du chemin donné et du répertoire de base
- * 
- * @param connfd  socket de connexion
- * @param path  chemin logique reçu de la requête
- * @param base_dir  dossier de base pour la résolution
- * @param require_existing  1 si le chemin doit exister, 0 si le chemin peut être créé
- * @param header_out  pointeur pour récupérer le header de transfert
- * @return int 
- */
-int receive_file_by_blocks_to_path(int connfd, char path[], char *base_dir, int require_existing, transfer_header_t *header_out) {
-    transfer_header_t header;
-    rio_t rio;
-    int fd;
-    int result;
-
-    if (path == NULL || base_dir == NULL) {
-        return 1;
-    }
-
-    Rio_readinitb(&rio, connfd);
-    if (receive_transfer_header(connfd, &header, &rio) != 0) {
-        return CLIENT_DISCONNECTED_R;
-    }
-
-    if (header.error != NO_ERROR_R) {
-        return header.error;
-    }
-
-    if (require_existing) {
-        char abs_path[MAXLINE];
-        if (!get_abs_path_from_src_path(path, abs_path, base_dir, 1)) {
-            return PATH_ERROR_R;
-        }
-        fd = open(abs_path, O_WRONLY | O_TRUNC, 0);
-        if (fd < 0) {
-            return PATH_ERROR_R;
-        }
-    } else {
-        if (!open_file_w(path, &fd, base_dir)) {
-            return PATH_ERROR_R;
-        }
-    }
-
-    result = receive_file_by_blocks_to_fd(&rio, fd, header.total_size, 0, NULL);
-    Close(fd);
-
-    if (result == NO_ERROR_R && header_out != NULL) {
-        *header_out = header;
-    }
-
-    return result;
-}
-
-
-/**
- * @brief Reçoit un fichier complet par blocs et l'écrit dans un chemin de fichier, en construisant le chemin complet à partir du chemin donné et du répertoire de base, avec une reprise possible à partir d'un offset de départ, et en gérant les erreurs
- * 
- * @param connfd  socket de connexion
- * @param path  chemin logique reçu de la requête
- * @param header_out  pointeur pour récupérer le header de transfert
- * @return int 
- */
 int receive_file_by_blocks(int connfd, char path[], transfer_header_t *header_out) {
     return receive_file_by_blocks_resume(connfd, path, path, 0, header_out);
 }
 
-
 int receive_file_by_blocks_resume(int connfd, char remote_path[], char local_path[], uint32_t start_offset, transfer_header_t *header_out) {
     transfer_header_t header;
+    data_block_t block;
     rio_t rio;
     char final_path[MAXLINE];
     char part_path[MAXLINE];
@@ -943,17 +693,25 @@ int receive_file_by_blocks_resume(int connfd, char remote_path[], char local_pat
     if (write_part_meta(meta_path, remote_path, total_received) != 0) {
         Close(fd);
         return 1;
-    } else {
-        struct meta_progress_ctx progress_ctx;
-        int recv_result;
-
-        progress_ctx.meta_path = meta_path;
-        progress_ctx.remote_path = remote_path;
-
-        recv_result = receive_file_by_blocks_to_fd_internal(&rio,  fd, header.total_size, start_offset, &total_received, on_meta_progress_cb, &progress_ctx);
-        if (recv_result != NO_ERROR_R) {
+    }
+    
+    while (total_received < header.total_size) {
+        if (receive_data_block(connfd, &block, &rio) != 0) {
             Close(fd);
-            return recv_result;
+            return CLIENT_DISCONNECTED_R;
+        }
+        
+        // Ecrire le bloc dans le fichier
+        if (Write(fd, block.data, block.data_size) < 0) {
+            Close(fd);
+            return 1;
+        }
+        
+        total_received += block.data_size;
+
+        if (write_part_meta(meta_path, remote_path, total_received) != 0) {
+            Close(fd);
+            return 1;
         }
     }
 
