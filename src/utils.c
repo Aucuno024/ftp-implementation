@@ -395,3 +395,12 @@ int list_dir(char *path, char **content)
     return 0;
 }
 
+void slipt(char *str, char chr)
+{
+    char * ptr = strchr(chr);
+    while(ptr)
+    {
+        *ptr = '\0';
+        ptr = strchr(chr);
+    }
+}

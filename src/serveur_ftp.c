@@ -7,6 +7,10 @@
 #define SLAVE_PORT 2121
 #endif
 
+#ifndef CLIENT_PATH
+#define CLIENT_PATH bin/client
+#endif
+
 #define COMM_SLAVE_PORT 2222
 
 #ifndef POOL_SIZE
@@ -46,7 +50,64 @@ void handler_int(int signal)
 
 int coherence(log_t *log, char *master_ip)
 {
-    return 0;
+    int clientfd = Open_clientfd(master_ip, COMM_SLAVE_PORT);
+    request_t request;
+    encode_request(&request, GET, "");
+    write_request(&request, clientfd);
+    transfer_header_t header;
+    data_block_t block;
+    rio_t rio;
+    uint32_t total_received = 0;
+    char *content;
+    int i = 0;
+    Rio_readinitb(&rio, connfd);
+    if(receive_transfer_header(connfd, &header, &rio))
+        return 1;
+    if(header.error != NO_ERROR_R)
+        return header.error;
+    while(total_received < header.total_size)
+    {
+        if(receive_data_block(connfd, &block, &rio))
+            return CLIENT_DISCONNECTED_R;
+        if(!content)
+        {
+            content = malloc(bloc.data_size + 1);
+            for(; i < bloc.data_size; i++)
+            {
+                content[i] = block.data[i];
+            }
+        } else 
+        {
+            content = realloc(content, total_recived + block.data_size);
+            for(int j = 0; j < block.data_size; j++)
+            {
+                content[i++] = block.data[j];
+            }
+        }
+        total_received += block.data_size;
+    }
+    content[i] = '\0';
+    parse(content, '\n');
+    char * ptr = content;
+    while(ptr && strchr(ptr, '\0'))
+    {
+        log_t *fol = log;
+        int fds[2];
+        pipe(fds)
+        if(!Fork())
+        {
+            close(fds[0]);
+            dup2(STDIN_FILENO, fds[1]);
+            execlp(CLIENT_PATH, ptr, "-s", NULL);
+        }
+        close(fds[1]);
+        connected
+        while(fol)
+        {
+            write(fds[0], log->)
+        }
+        close(fds[0]);
+    }
 }
 /* 
  * Note that this code only works with IPv4 addresses
