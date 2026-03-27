@@ -50,64 +50,99 @@ void handler_int(int signal)
 
 int coherence(log_t *log, char *master_ip)
 {
-    int clientfd = Open_clientfd(master_ip, COMM_SLAVE_PORT);
+    int clientfd;
+    int fds[2];
+    char *content = NULL;
+    size_t total = 0;
+    ssize_t n;
+    char tmp[MAXLINE];
+
+    if (log == NULL || master_ip == NULL) {
+        return 0;
+    }
+
+    clientfd = Open_clientfd(master_ip, COMM_SLAVE_PORT);
+    if (clientfd < 0) {
+        return 1;
+    }
+
     request_t request;
     encode_request(&request, GET, "");
     write_request(&request, clientfd);
-    transfer_header_t header;
-    data_block_t block;
-    rio_t rio;
-    uint32_t total_received = 0;
-    char *content;
-    int i = 0;
-    Rio_readinitb(&rio, connfd);
-    if(receive_transfer_header(connfd, &header, &rio))
+
+    if (pipe(fds) == -1) {
+        Close(clientfd);
         return 1;
-    if(header.error != NO_ERROR_R)
-        return header.error;
-    while(total_received < header.total_size)
-    {
-        if(receive_data_block(connfd, &block, &rio))
-            return CLIENT_DISCONNECTED_R;
-        if(!content)
-        {
-            content = malloc(bloc.data_size + 1);
-            for(; i < bloc.data_size; i++)
-            {
-                content[i] = block.data[i];
-            }
-        } else 
-        {
-            content = realloc(content, total_recived + block.data_size);
-            for(int j = 0; j < block.data_size; j++)
-            {
-                content[i++] = block.data[j];
-            }
-        }
-        total_received += block.data_size;
     }
-    content[i] = '\0';
-    parse(content, '\n');
-    char * ptr = content;
-    while(ptr && strchr(ptr, '\0'))
-    {
-        log_t *fol = log;
-        int fds[2];
-        pipe(fds)
-        if(!Fork())
-        {
-            close(fds[0]);
-            dup2(STDIN_FILENO, fds[1]);
-            execlp(CLIENT_PATH, ptr, "-s", NULL);
-        }
-        close(fds[1]);
-        connected
-        while(fol)
-        {
-            write(fds[0], log->)
-        }
-        close(fds[0]);
+    if (receive_content(clientfd, fds[1]) != NO_ERROR_R) {
+        Close(fds[0]);
+        Close(fds[1]);
+        Close(clientfd);
+        return 1;
     }
+    Close(fds[1]);
+    Close(clientfd);
+
+    while ((n = Read(fds[0], tmp, sizeof(tmp))) > 0) {
+        char *new_content = realloc(content, total + (size_t)n + 1);
+        if (new_content == NULL) {
+            free(content);
+            Close(fds[0]);
+            return 1;
+        }
+        content = new_content;
+        memcpy(content + total, tmp, (size_t)n);
+        total += (size_t)n;
+        content[total] = '\0';
+    }
+    Close(fds[0]);
+
+    if (content == NULL || total == 0) {
+        free(content);
+        return 0;
+    }
+
+    char *slave_ip = content;
+    while (slave_ip && *slave_ip) {
+        char *next = strchr(slave_ip, '\n');
+        if (next) {
+            *next = '\0';
+            next++;
+        }
+
+        size_t ip_len = strlen(slave_ip);
+        if (ip_len > 0 && slave_ip[ip_len - 1] == '\r') {
+            slave_ip[ip_len - 1] = '\0';
+            ip_len--;
+        }
+
+        if (ip_len > 0) {
+            int slavefd = Open_clientfd(slave_ip, SLAVE_PORT);
+            if (slavefd >= 0) {
+                log_t *entry = log;
+                while (entry) {
+                    char update_payload[MAXLINE];
+                    response_t ack;
+                    if (snprintf(update_payload, sizeof(update_payload), "%d\n%s", (int)entry->type, entry->path) < (int)sizeof(update_payload)) {
+                        encode_request(&request, UPDATE, update_payload);
+                        write_request(&request, slavefd);
+                        if (read_response(&ack, slavefd)) {
+                            break;
+                        }
+                    }
+                    entry = follow(entry);
+                }
+                encode_request(&request, BYE, "");
+                write_request(&request, slavefd);
+                Close(slavefd);
+            }
+        }
+
+        slave_ip = next;
+    }
+
+    free(content);
+    return 0;
 }
 /* 
  * Note that this code only works with IPv4 addresses
@@ -168,7 +203,7 @@ int main(int argc, char **argv)
                 #ifdef DEBUG
                     printf("%s say \"Server connected to %s (%s)\"\n", SPEAKER, client_hostname, client_ip_string);
                 #endif
-                log_t *log;
+                log_t *log = NULL;
                 int is_update = 0;
                 while(1) {
                     request_t* request = malloc(sizeof(request_t));
