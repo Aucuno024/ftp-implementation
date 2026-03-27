@@ -7,6 +7,8 @@
 #define SLAVE_PORT 2121
 #endif
 
+#define COMM_SLAVE_PORT 2222
+
 #ifndef POOL_SIZE
 #define POOL_SIZE 20
 #endif
@@ -42,7 +44,10 @@ void handler_int(int signal)
     exit(0);
 }
 
-int coherence(log_t *log, char *master_ip);
+int coherence(log_t *log, char *master_ip)
+{
+    return 0;
+}
 /* 
  * Note that this code only works with IPv4 addresses
  * (IPv6 is not supporteded)

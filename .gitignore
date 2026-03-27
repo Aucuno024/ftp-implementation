@@ -5,7 +5,9 @@ obj/*
 .vscode/
 serverdir/*
 clientdir/*
-config_*
+config_master
+config_slave
+
 
 # Prerequisites
 *.d

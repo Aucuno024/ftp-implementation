@@ -7,14 +7,16 @@
 #define PORT 2121
 #define MAX_NAME_LEN 256
 #define SPEAKER "hal 9000"
+#define COMM_SLAVE_PORT 2222
 
 #ifndef NB_SLAVE
 #define NB_SLAVE 2
 #endif
 
 #ifndef SLAVE_PORT
-#define SLAVE_PORT 1212
+#define SLAVE_PORT 2121
 #endif
+
 
 #ifndef SLAVE_PATH
 #define SLAVE_PATH "config_master"
@@ -106,7 +108,7 @@ int main(int argc, char **argv)
         listenfd = Open_listenfd(PORT);
     } else 
     {
-        listenfd = Open_listenfd(SLAVE_PORT);
+        listenfd = Open_listenfd(COMM_SLAVE_PORT);
     }
 
     #ifdef DEBUG
