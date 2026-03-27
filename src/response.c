@@ -588,6 +588,71 @@ int send_server_response(int connfd, char path[], typereq_t type, log_t *log)
             return TYPE_ERROR_R;
         }
 
+        case UPDATE: {
+            char *sep;
+            char *endptr;
+            long parsed_type;
+            typereq_t forwarded_type;
+            char *forwarded_path;
+
+            sep = strchr(path, '\n');
+            if (sep == NULL) {
+                send_error(connfd, TYPE_ERROR_R);
+                return TYPE_ERROR_R;
+            }
+
+            *sep = '\0';
+            forwarded_path = sep + 1;
+
+            parsed_type = strtol(path, &endptr, 10);
+            if (endptr == path || *endptr != '\0') {
+                send_error(connfd, TYPE_ERROR_R);
+                return TYPE_ERROR_R;
+            }
+
+            forwarded_type = (typereq_t)parsed_type;
+
+            if (forwarded_type == RM) {
+                int rm_result = remove_file(forwarded_path, DEFAULT_SERVER_DIR);
+                int update_error = NO_ERROR_R;
+                response = malloc(sizeof(response_t));
+                if (response == NULL) {
+                    return 1;
+                }
+                if (rm_result == 0) {
+                    encode_response(response, (const uint8_t *)"UPDATE RM OK\n");
+                    response->error = NO_ERROR_R;
+                    update_error = NO_ERROR_R;
+                } else if (rm_result == 1) {
+                    encode_response(response, (const uint8_t *)"UPDATE RM NOT FOUND\n");
+                    response->error = PATH_ERROR_R;
+                    update_error = PATH_ERROR_R;
+                } else {
+                    encode_response(response, (const uint8_t *)"UPDATE RM ERROR\n");
+                    response->error = PATH_ERROR_R;
+                    update_error = PATH_ERROR_R;
+                }
+                write_response(response, connfd);
+                free(response);
+                return update_error;
+            }
+
+            if (forwarded_type == PUT) {
+                response = malloc(sizeof(response_t));
+                if (response == NULL) {
+                    return 1;
+                }
+                encode_response(response, (const uint8_t *)"UPDATE PUT IGNORED\n");
+                response->error = NO_ERROR_R;
+                write_response(response, connfd);
+                free(response);
+                return NO_ERROR_R;
+            }
+
+            send_error(connfd, TYPE_ERROR_R);
+            return TYPE_ERROR_R;
+        }
+
                 response = malloc(sizeof(response_t));
                 if (response == NULL) {
                     return 1;
