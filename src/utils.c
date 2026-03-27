@@ -395,12 +395,3 @@ int list_dir(char *path, char **content)
     return 0;
 }
 
-void split(char *str, char chr)
-{
-    char * ptr = strchr(str, chr);
-    while(ptr)
-    {
-        *ptr = '\0';
-        ptr = strchr(ptr + 1, chr);
-    }
-}

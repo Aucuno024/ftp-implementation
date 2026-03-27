@@ -97,13 +97,4 @@ int get_abs_path_from_src_path(const char *path, char *server_path, const char *
  * @return 1 si erreur 0 sinon
  */
 int update(char **content, char *element);
-
-/**
- * @fn void parse(char *str, char chr)
- * @brief slipt une chaine de caractère en plusieurs a chaque occurence d'un caractere (la chaine suivante
- * est accessible avec strchr(str, '\0'))
- * @param str la chaine a split
- * @param chr le caractere de split
- */
-void split(char *str, char chr);
 #endif

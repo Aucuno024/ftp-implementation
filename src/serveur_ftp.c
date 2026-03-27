@@ -13,16 +13,17 @@
 
 #define COMM_SLAVE_PORT 2222
 
+#define MAX_NAME_LEN 256
 #ifndef POOL_SIZE
 #define POOL_SIZE 20
 #endif
 
-#define MAX_NAME_LEN 256
 #define SPEAKER "Raccoon"
 
 #ifndef MASTER_PATH
 #define MASTER_PATH "config_slave"
 #endif
+
 
 #ifdef DEBUG
 void handler_pipe(int signal) 
@@ -163,13 +164,13 @@ int main(int argc, char **argv)
     char client_ip_string[INET_ADDRSTRLEN];
     char client_hostname[MAX_NAME_LEN];
     char master_ip[INET_ADDRSTRLEN];
+
     clientlen = (socklen_t)sizeof(clientaddr);
 
     int fd = Open(MASTER_PATH, O_RDONLY, 0);
     rio_t rio;
     Rio_readinitb(&rio, fd);
     char buf[MAXLINE];
-    int n = 0;
     int j = 0;
     Rio_readlineb(&rio, buf, MAXLINE);
     for(; j < INET_ADDRSTRLEN - 1; j++)

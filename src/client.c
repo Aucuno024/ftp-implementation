@@ -12,7 +12,7 @@
 #define PORT 2121
 #define PART_SUFFIX ".part"
 #define META_SUFFIX ".part.meta"
-#define SPEAKER "Dio Brando"
+#define SPEAKER "Al"
 
 
 /**
@@ -394,22 +394,21 @@ int main(int argc, char **argv)
         fprintf(stderr, "usage: %s <host>\n", argv[0]);
         exit(0);
     }
-
     master = argv[1];
 
     /*
-    * Note that the 'host' can be a name or an IP address.
-    * If necessary, Open_clientfd will perform the name resolution
-    * to obtain the IP address.
-    */
+     * Note that the 'host' can be a name or an IP address.
+     * If necessary, Open_clientfd will perform the name resolution
+     * to obtain the IP address.
+     */
     clientfd = Open_clientfd(master, PORT);
-
+    
     /*
-    * At this stage, the connection is established between the client
-    * and the server OS ... but it is possible that the server application
-    * has not yet called "Accept" for this connection
-    */
-    printf("client connected to server Master\n");
+     * At this stage, the connection is established between the client
+     * and the server OS ... but it is possible that the server application
+     * has not yet called "Accept" for this connection
+     */
+    printf("client connected to server Master\n"); 
     int err;
     if((err = get_cred(&port, host, clientfd)))
     {
@@ -417,12 +416,11 @@ int main(int argc, char **argv)
         exit(err);
     }
     Close(clientfd);
-
     clientfd = Open_clientfd(host, port);
-    printf("client connected to server OS\n");
+    printf("client connected to server OS\n"); 
 
     auto_resume_downloads(clientfd);
-
+    
     request_t request;
     int loop = 1;
     while (loop) {
@@ -430,20 +428,20 @@ int main(int argc, char **argv)
         if (Fgets(buf, MAXLINE, stdin) == NULL) {
             // EOF sur stdin
             printf("\n");  // Nouvelle ligne après EOF
-
+            
             // Envoyer BYE pour fermer la connexion
             typereq_t typereq = BYE;
             encode_request(&request, typereq, "");
             write_request(&request, clientfd);
-
+            
             // Lire la réponse BYE du serveur
             response_t response;
             read_response(&response, clientfd);
             break;
         }
-
+        
         typereq_t typereq;
-        err = command_parser(buf, &typereq, buf);
+        int err = command_parser(buf, &typereq, buf);
         if (err != 0) {
             printf("Commande invalide : ");
             if (err == 2) {
@@ -451,7 +449,7 @@ int main(int argc, char **argv)
             } else if (err == 1) {
                 printf("Nom de commande invalide. Commandes valides: get, put, ls, rm, bye\n");
             }
-            continue;
+            continue; 
         }
 
         size_t n = strlen(buf);
@@ -475,14 +473,16 @@ int main(int argc, char **argv)
             // Lire la réponse BYE et fermer la connexion
             if (read_response(&response, clientfd) == 0) {
                 uint8_t content[MAXLINE];
-                uint8_t response_error;
-                if (decode_response(&response, content, &response_error) == 0) {
+                uint8_t error;
+                if (decode_response(&response, content, &error) == 0) {
                     printf("Response: %s\n", content);
                 }
             }
             loop = 0;
             break;
         case LS:
+            request_t request;
+            
             if(encode_request(&request, LS, buf))
             {
                 printf("Erreur lors de la creation de la requete\n");
@@ -498,11 +498,11 @@ int main(int argc, char **argv)
             encode_request(&request, typereq, buf);
             write_request(&request, clientfd);
 
-            // Lire la réponse RM
+            // Lire la réponse RM 
             if (read_response(&response, clientfd) == 0) {
                 uint8_t content[MAXLINE];
-                uint8_t response_error;
-                if (decode_response(&response, content, &response_error) == 0) {
+                uint8_t error;
+                if (decode_response(&response, content, &error) == 0) {
                     printf("Response: %s\n", content);
                 }
             }
@@ -552,18 +552,16 @@ int main(int argc, char **argv)
             write_request(&request, clientfd);
 
             // Pour autres requêtes: lecture d'une réponse simple
-            {
-                uint8_t content[MAXLINE];
-                if (read_response(&response, clientfd) == 0 && decode_response(&response, content, &error) == 0) {
-                    if (error == NO_ERROR_R) {
-                        printf("Command completed successfully\n");
-                        printf("Response: %s\n", content);
-                    } else {
-                        printf("Command failed with error %d: %s\n", error, (char *)content);
-                    }
+            uint8_t content[MAXLINE];
+            if (read_response(&response, clientfd) == 0 && decode_response(&response, content, &error) == 0) {
+                if (error == NO_ERROR_R) {
+                    printf("Command completed successfully\n");
+                    printf("Response: %s\n", content);
                 } else {
-                    printf("Failed to receive response\n");
+                    printf("Command failed with error %d: %s\n", error, (char *)content);
                 }
+            } else {
+                printf("Failed to receive response\n");
             }
             break;
         }

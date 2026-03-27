@@ -7,7 +7,7 @@ serverdir/*
 clientdir/*
 config_master
 config_slave
-
+cours.cls
 
 # Prerequisites
 *.d
