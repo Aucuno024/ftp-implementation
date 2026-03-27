@@ -1,4 +1,7 @@
 rm -rf clientdir/*
+echo "fichier1" > clientdir/fichier1
+mkdir -p clientdir/dosc
+echo "fichier2" > clientdir/dosc/fichier2
 make clean
 make DEBUG=1
 

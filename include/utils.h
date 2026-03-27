@@ -26,6 +26,15 @@ int get_endianess();
 int open_file_r(char path[], int *fd, const char *dirpath);
 
 /**
+ * @brief Ouvre un fichier en ecriture dans dirpath, en autorisant la creation
+ * @param path le chemin logique vers le fichier
+ * @param fd le parametre recevant le descripteur
+ * @param dirpath le chemin du dossier autorise
+ * @return 1 si tout s'est bien passe, 0 sinon
+ */
+int open_file_w(char path[], int *fd, const char *dirpath);
+
+/**
  * @brief Ecrit le contenu dans un fichier a un chemin donnee
  * @param path le chemin vers le fichier
  * @param content le contenu a ecrire dans le fichier

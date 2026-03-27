@@ -130,6 +130,28 @@ int receive_transfer_header(int connfd, transfer_header_t *header, rio_t *rio);
 int receive_data_block(int connfd, data_block_t *block, rio_t *rio);
 
 /**
+ * @brief Reçoit des blocs et les écrit dans un descripteur de fichier
+ * @param rio buffer rio déjà initialisé sur la connexion
+ * @param fd descripteur de destination
+ * @param total_size taille totale attendue
+ * @param start_offset offset de départ déjà présent dans fd
+ * @param total_received_out total reçu à la fin
+ * @return 0 si ok, code erreur sinon
+ */
+int receive_file_by_blocks_to_fd(rio_t *rio, int fd, uint32_t total_size, uint32_t start_offset, uint32_t *total_received_out);
+
+/**
+ * @brief Reçoit un fichier complet vers un chemin avec base_dir en creant le fichier si nécessaire
+ * @param connfd socket de connexion
+ * @param path chemin logique reçu de la requête
+ * @param base_dir dossier de base pour la résolution
+ * @param require_existing 1 si le chemin doit exister, 0 si le chemin peut être créé
+ * @param header_out pointeur pour récupérer le header
+ * @return 0 si ok, code erreur sinon
+ */
+int receive_file_by_blocks_to_path(int connfd, char path[], char *base_dir, int require_existing, transfer_header_t *header_out);
+
+/**
  * @brief Reçoit un fichier complet par blocs et l'écrit 
  * @param connfd socket de connexion
  * @param path chemin où écrire le fichier

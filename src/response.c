@@ -25,7 +25,7 @@
  * @param len la taille du buffer
  * @return int 0 si l'écriture a réussi, 1 sinon
  */
-static int socket_write_all(int fd, const void *buf, size_t len) {
+int socket_write_all(int fd, const void *buf, size_t len) {
     ssize_t nw = rio_writen(fd, (void *)buf, len);
     if (nw != (ssize_t)len) {
         return 1;
@@ -40,7 +40,7 @@ static int socket_write_all(int fd, const void *buf, size_t len) {
  * @param dest_size la taille du buffer de destination
  * @return int 0 si le chemin a été construit, 1 sinon
  */
-static int build_client_dest_path(const char *path, char *dest, size_t dest_size) {
+int build_client_dest_path(const char *path, char *dest, size_t dest_size) {
     if (path == NULL || dest == NULL || dest_size == 0) {
         return 1;
     }
@@ -67,7 +67,7 @@ static int build_client_dest_path(const char *path, char *dest, size_t dest_size
  * @param meta_size  la taille du buffer meta_path
  * @return int 
  */
-static int build_partial_paths(const char *base_path, char *part_path, size_t part_size, char *meta_path, size_t meta_size) {
+int build_partial_paths(const char *base_path, char *part_path, size_t part_size, char *meta_path, size_t meta_size) {
     if (base_path == NULL || part_path == NULL || meta_path == NULL) {
         return 1;
     }
@@ -87,7 +87,7 @@ static int build_partial_paths(const char *base_path, char *part_path, size_t pa
  * @param file_path  le chemin complet du fichier
  * @return int 0 si succes, 1 sinon
  */
-static int ensure_parent_dirs(const char *file_path) {
+int ensure_parent_dirs(const char *file_path) {
     char tmp[MAXLINE];
     char *p;
 
@@ -125,7 +125,7 @@ static int ensure_parent_dirs(const char *file_path) {
  * @param offset  l'offset déjà reçu du fichier
  * @return int 
  */
-static int write_part_meta(const char *meta_path, const char *remote_path, uint32_t offset) {
+int write_part_meta(const char *meta_path, const char *remote_path, uint32_t offset) {
     char tmp_path[MAXLINE];
     FILE *f;
 
@@ -168,7 +168,7 @@ static int write_part_meta(const char *meta_path, const char *remote_path, uint3
  * @param error  le code d'erreur à envoyer
  * @return int 
  */
-static int send_error_header(int connfd, uint8_t error) {
+int send_error_header(int connfd, uint8_t error) {
     transfer_header_t error_header;
     memset(&error_header, 0, sizeof(error_header));
     error_header.endian = get_endianess();
@@ -190,7 +190,7 @@ static int send_error_header(int connfd, uint8_t error) {
  * @param offset_out  un pointeur où stocker l'offset de reprise extrait
  * @return int 
  */
-static int parse_resume_data(const char *data, char *path_out, size_t path_out_size, uint32_t *offset_out) {
+int parse_resume_data(const char *data, char *path_out, size_t path_out_size, uint32_t *offset_out) {
     const char *sep;
     size_t path_len;
     char *endptr;
@@ -314,7 +314,7 @@ int send_data_block(int connfd, uint16_t block_num, const uint8_t *data, uint16_
 }
 
 
-static int send_file_by_blocks_from_offset(int connfd, char path[], uint32_t start_offset, char *srcdir) {
+int send_file_by_blocks_from_offset(int connfd, char path[], uint32_t start_offset, char *srcdir) {
     int fd;
     struct stat st;
     uint32_t file_size = 0;
@@ -514,23 +514,33 @@ int send_server_response(int connfd, char path[], typereq_t type, log_t *log)
             if (response == NULL) {
                 return 1;
             }
-            encode_response(response, (const uint8_t*) "PUT\n");
+            encode_response(response, (const uint8_t*) "READY_PUT");
             write_response(response, connfd);
             free(response);
-            return NO_ERROR_R;
+            {
+                int put_result = receive_file_by_blocks_to_path(connfd, path, DEFAULT_SERVER_DIR, 0, NULL);
+                if (put_result == CLIENT_DISCONNECTED_R) {
+                    return CLIENT_DISCONNECTED_R;
+                }
 
                 response = malloc(sizeof(response_t));
-                if (response == NULL)
-                    return -1;
-                 
-                response->endian = get_endianess();
-                encode_response(response, (uint8_t *) "CANT LIST\n");
-                response->error = PATH_ERROR_R;
+                if (response == NULL) {
+                    return 1;
+                }
+
+                if (put_result == NO_ERROR_R) {
+                    encode_response(response, (const uint8_t*) "PUT completed successfully");
+                } else {
+                    char put_error_text[MAXLINE];
+                    snprintf(put_error_text, sizeof(put_error_text), "PUT failed with error %d", put_result);
+                    encode_response(response, (const uint8_t*) put_error_text);
+                    response->error = put_result;
+                }
 
                 write_response(response, connfd);
-
                 free(response);
-                return PATH_ERROR_R;
+                return put_result;
+            }
         default:
             response = malloc(sizeof(response_t));
             if (response == NULL) {
@@ -582,13 +592,164 @@ int receive_data_block(int connfd, data_block_t *block, rio_t *rio) {
     return 0;
 }
 
+
+
+
+
+
+
+
+
+
+
+/* Structures intermédiaires pour le contexte de la callback de progression */
+// Structure de contexte pour la progression des métadonnées lors de la réception d'un fichier par blocs
+typedef int (*receive_progress_cb_t)(uint32_t total_received, void *ctx);
+
+// Structure de contexte pour la callback de progression des métadonnées, contenant les chemins nécessaires pour mettre à jour les métadonnées
+struct meta_progress_ctx {
+    const char *meta_path;
+    const char *remote_path;
+};
+
+
+// Fonction de callback pour la progression des métadonnées, uniquement pour le GET
+int on_meta_progress_cb(uint32_t received, void *ctx_ptr) {
+    struct meta_progress_ctx *ctx = (struct meta_progress_ctx *)ctx_ptr;
+    return write_part_meta(ctx->meta_path, ctx->remote_path, received);
+}
+
+/**
+ * @brief Reçoit un fichier complet par blocs et l'écrit dans un descripteur de fichier, en gérant les erreurs et en permettant une reprise avec un offset de départ et une callback de progression pour les métadonnées
+ * 
+ * @param rio le rio associé au socket de connexion pour lire les données 
+ * @param fd  le descripteur de fichier où écrire les données reçues
+ * @param total_size  la taille totale du fichier à recevoir
+ * @param start_offset  l'offset de départ pour la reprise (0 pour un transfert normal)
+ * @param total_received_out  un pointeur pour récupérer la taille totale reçue à la fin de la fonction (peut être NULL si non nécessaire)
+ * @param on_progress  un pointeur vers la fonction de callback pour la progression (peut être NULL si non nécessaire)
+ * @param progress_ctx  un pointeur vers le contexte à passer à la callback de progression (peut être NULL si non nécessaire)
+ * @return int 
+ */
+int receive_file_by_blocks_to_fd_internal(rio_t *rio, int fd, uint32_t total_size, uint32_t start_offset,  uint32_t *total_received_out, receive_progress_cb_t on_progress, void *progress_ctx) {
+    data_block_t block;
+    uint32_t total_received;
+
+    if (rio == NULL || fd < 0) {
+        return 1;
+    }
+
+    total_received = start_offset;
+
+    while (total_received < total_size) {
+        if (receive_data_block(0, &block, rio) != 0) {
+            return CLIENT_DISCONNECTED_R;
+        }
+        if (block.data_size > BLOCK_SIZE || total_received + block.data_size > total_size) {
+            return TYPE_ERROR_R;
+        }
+        if (rio_writen(fd, block.data, block.data_size) != (ssize_t)block.data_size) {
+            return PATH_ERROR_R;
+        }
+        total_received += block.data_size;
+
+        if (on_progress != NULL && on_progress(total_received, progress_ctx) != 0) {
+            return 1;
+        }
+    }
+
+    if (total_received_out != NULL) {
+        *total_received_out = total_received;
+    }
+
+    return NO_ERROR_R;
+}
+
+
+/**
+ * @brief Reçoit un fichier complet par blocs et l'écrit dans un descripteur de fichier, en gérant les erreurs et en permettant une reprise avec un offset de départ, sans callback de progression pour les métadonnées
+ * 
+ * @param rio 
+ * @param fd 
+ * @param total_size 
+ * @param start_offset 
+ * @param total_received_out 
+ * @return int 
+ */
+int receive_file_by_blocks_to_fd(rio_t *rio, int fd, uint32_t total_size, uint32_t start_offset, uint32_t *total_received_out) {
+    return receive_file_by_blocks_to_fd_internal(rio, fd, total_size, start_offset, total_received_out, NULL, NULL);
+}
+
+/**
+ * @brief Reçoit un fichier complet par blocs et l'écrit dans un chemin de fichier, en construisant le chemin complet à partir du chemin donné et du répertoire de base
+ * 
+ * @param connfd  socket de connexion
+ * @param path  chemin logique reçu de la requête
+ * @param base_dir  dossier de base pour la résolution
+ * @param require_existing  1 si le chemin doit exister, 0 si le chemin peut être créé
+ * @param header_out  pointeur pour récupérer le header de transfert
+ * @return int 
+ */
+int receive_file_by_blocks_to_path(int connfd, char path[], char *base_dir, int require_existing, transfer_header_t *header_out) {
+    transfer_header_t header;
+    rio_t rio;
+    int fd;
+    int result;
+
+    if (path == NULL || base_dir == NULL) {
+        return 1;
+    }
+
+    Rio_readinitb(&rio, connfd);
+    if (receive_transfer_header(connfd, &header, &rio) != 0) {
+        return CLIENT_DISCONNECTED_R;
+    }
+
+    if (header.error != NO_ERROR_R) {
+        return header.error;
+    }
+
+    if (require_existing) {
+        char abs_path[MAXLINE];
+        if (!get_abs_path_from_src_path(path, abs_path, base_dir, 1)) {
+            return PATH_ERROR_R;
+        }
+        fd = open(abs_path, O_WRONLY | O_TRUNC, 0);
+        if (fd < 0) {
+            return PATH_ERROR_R;
+        }
+    } else {
+        if (!open_file_w(path, &fd, base_dir)) {
+            return PATH_ERROR_R;
+        }
+    }
+
+    result = receive_file_by_blocks_to_fd(&rio, fd, header.total_size, 0, NULL);
+    Close(fd);
+
+    if (result == NO_ERROR_R && header_out != NULL) {
+        *header_out = header;
+    }
+
+    return result;
+}
+
+
+/**
+ * @brief Reçoit un fichier complet par blocs et l'écrit dans un chemin de fichier, en construisant le chemin complet à partir du chemin donné et du répertoire de base, avec une reprise possible à partir d'un offset de départ, et en gérant les erreurs
+ * 
+ * @param connfd  socket de connexion
+ * @param path  chemin logique reçu de la requête
+ * @param header_out  pointeur pour récupérer le header de transfert
+ * @return int 
+ */
 int receive_file_by_blocks(int connfd, char path[], transfer_header_t *header_out) {
     return receive_file_by_blocks_resume(connfd, path, path, 0, header_out);
 }
 
+
 int receive_file_by_blocks_resume(int connfd, char remote_path[], char local_path[], uint32_t start_offset, transfer_header_t *header_out) {
     transfer_header_t header;
-    data_block_t block;
     rio_t rio;
     char final_path[MAXLINE];
     char part_path[MAXLINE];
@@ -652,25 +813,17 @@ int receive_file_by_blocks_resume(int connfd, char remote_path[], char local_pat
     if (write_part_meta(meta_path, remote_path, total_received) != 0) {
         Close(fd);
         return 1;
-    }
-    
-    while (total_received < header.total_size) {
-        if (receive_data_block(connfd, &block, &rio) != 0) {
-            Close(fd);
-            return CLIENT_DISCONNECTED_R;
-        }
-        
-        // Ecrire le bloc dans le fichier
-        if (Write(fd, block.data, block.data_size) < 0) {
-            Close(fd);
-            return 1;
-        }
-        
-        total_received += block.data_size;
+    } else {
+        struct meta_progress_ctx progress_ctx;
+        int recv_result;
 
-        if (write_part_meta(meta_path, remote_path, total_received) != 0) {
+        progress_ctx.meta_path = meta_path;
+        progress_ctx.remote_path = remote_path;
+
+        recv_result = receive_file_by_blocks_to_fd_internal(&rio,  fd, header.total_size, start_offset, &total_received, on_meta_progress_cb, &progress_ctx);
+        if (recv_result != NO_ERROR_R) {
             Close(fd);
-            return 1;
+            return recv_result;
         }
     }
 

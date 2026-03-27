@@ -507,6 +507,46 @@ int main(int argc, char **argv)
                 }
             }
             break;
+        case PUT:
+            encode_request(&request, typereq, buf);
+            write_request(&request, clientfd);
+
+            if (read_response(&response, clientfd) != 0) {
+                printf("Failed to receive READY_PUT response\n");
+                break;
+            } else {
+                uint8_t content[MAXLINE];
+                if (decode_response(&response, content, &error) != 0) {
+                    printf("Failed to decode READY_PUT response\n");
+                    break;
+                }
+
+                if (error != NO_ERROR_R || strcmp((char *)content, "READY_PUT") != 0) {
+                    printf("PUT refused by server: %s\n", (char *)content);
+                    break;
+                }
+            }
+
+            error = (uint8_t)send_file_by_blocks(clientfd, buf, DEFAULT_CLIENT_DIR);
+
+            if (read_response(&response, clientfd) == 0) {
+                uint8_t content[MAXLINE];
+                uint8_t final_error;
+                if (decode_response(&response, content, &final_error) == 0) {
+                    if (final_error == NO_ERROR_R) {
+                        printf("Response: %s\n", content);
+                    } else {
+                        printf("PUT failed with error %d: %s\n", final_error, (char *)content);
+                    }
+                }
+            } else {
+                printf("Failed to receive final PUT response\n");
+            }
+
+            if (error != NO_ERROR_R) {
+                printf("PUT upload phase returned error %d\n", error);
+            }
+            break;
         default:
             encode_request(&request, typereq, buf);
             write_request(&request, clientfd);

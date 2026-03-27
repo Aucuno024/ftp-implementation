@@ -2,6 +2,7 @@
 #include "csapp.h"
 #include <stdint.h>
 #include "string.h"
+#include <errno.h>
 #include <dirent.h>
 
 #define SPEAKER "Gyro"
@@ -60,6 +61,37 @@ int build_candidate_path(const char *path, char *candidate_path, size_t candidat
     return 1;
 }
 
+static int ensure_parent_dirs_for_file(const char *file_path) {
+    char tmp[MAXLINE];
+    char *p;
+
+    if (file_path == NULL) {
+        return 0;
+    }
+
+    if (snprintf(tmp, sizeof(tmp), "%s", file_path) >= (int)sizeof(tmp)) {
+        return 0;
+    }
+    p = tmp;
+    if (*p == '/') {
+        p++;
+    }
+
+    for (; *p != '\0'; p++) {
+        if (*p != '/') {
+            continue;
+        }
+
+        *p = '\0';
+        if (tmp[0] != '\0' && mkdir(tmp, 0755) != 0 && errno != EEXIST) {
+            return 0;
+        }
+        *p = '/';
+    }
+
+    return 1;
+}
+
 /** 
  * @brief Ecrire tout le contenu dans un descripteur de fichier
  * @param fd le descripteur de fichier
@@ -106,46 +138,61 @@ int get_abs_path_from_src_path(const char *path, char *server_path, const char *
 
         return 1;
     }
-
+    // Si le fichier n'est pas obligatoirement existant
     if (!require_existing) {
-        char parent_path[MAXLINE];
-        char parent_abs[MAXLINE];
-        char *last_sep;
-        const char *filename;
+        char root_abs[MAXLINE];
+        char rel_path[MAXLINE];
+        char *cursor;
+        int has_component = 0;
 
-        last_sep = strrchr(candidate_path, '/');
-        if (last_sep == NULL) {
+        if (realpath(dirpath, root_abs) == NULL) {
             return 0;
         }
 
-        filename = last_sep + 1;
-        if (filename[0] == '\0') {
-            return 0;
-        }
-        if (strcmp(filename, ".") == 0 || strcmp(filename, "..") == 0) {
-            return 0;
-        }
-        if (last_sep == candidate_path) {
-            parent_path[0] = '/';
-            parent_path[1] = '\0';
-        } else {
-            size_t parent_len = (size_t)(last_sep - candidate_path);
-            if (parent_len >= sizeof(parent_path)) {
+        if (path[0] == '/') {
+            const char *suffix = path;
+            while (*suffix == '/') {
+                suffix++;
+            }
+            if (snprintf(rel_path, sizeof(rel_path), "%s", suffix) >= (int)sizeof(rel_path)) {
                 return 0;
             }
-            memcpy(parent_path, candidate_path, parent_len);
-            parent_path[parent_len] = '\0';
+        } else {
+            if (snprintf(rel_path, sizeof(rel_path), "%s", path) >= (int)sizeof(rel_path)) {
+                return 0;
+            }
         }
 
-        if (realpath(parent_path, parent_abs) == NULL) {
-            return 0;
+        if (rel_path[0] == '\0')  return 0;
+
+        if (rel_path[strlen(rel_path) - 1] == '/')  return 0;
+
+        if (snprintf(server_path, MAXLINE, "%s", root_abs) >= MAXLINE)  return 0;
+
+        cursor = rel_path;
+        while (*cursor != '\0') {
+            char *next_sep = strchr(cursor, '/');
+            size_t comp_len = next_sep ? (size_t)(next_sep - cursor) : strlen(cursor);
+
+            if (comp_len == 0) {
+                cursor = next_sep ? (next_sep + 1) : (cursor + strlen(cursor));
+                continue;
+            }
+
+            if ((comp_len == 1 && cursor[0] == '.') ||
+                (comp_len == 2 && cursor[0] == '.' && cursor[1] == '.')) {
+                return 0;
+            }
+
+            if (snprintf(server_path + strlen(server_path), MAXLINE - strlen(server_path), "/%.*s", (int)comp_len, cursor) >= (int)(MAXLINE - strlen(server_path))) {
+                return 0;
+            }
+
+            has_component = 1;
+            cursor = next_sep ? (next_sep + 1) : (cursor + comp_len);
         }
 
-        if (!is_path_in_dirpath(parent_abs, dirpath)) {
-            return 0;
-        }
-
-        if (snprintf(server_path, MAXLINE, "%s/%s", parent_abs, filename) >= MAXLINE) {
+        if (!has_component) {
             return 0;
         }
 
@@ -189,6 +236,24 @@ int open_file_r(char path[], int *fd, const char *dirpath)
     return (*fd = open(abs_path, O_RDONLY, 0)) != -1;
 }
 
+int open_file_w(char path[], int *fd, const char *dirpath)
+{
+    if (path == NULL || fd == NULL) {
+        return 0;
+    }
+
+    char abs_path[MAXLINE];
+    if (!get_abs_path_from_src_path(path, abs_path, dirpath, 0)) {
+        return 0;
+    }
+
+    if (!ensure_parent_dirs_for_file(abs_path)) {
+        return 0;
+    }
+
+    return (*fd = open(abs_path, O_WRONLY | O_CREAT | O_TRUNC, 0644)) != -1;
+}
+
 int write_file_from_content(char path[], const uint8_t *content, size_t content_size)
 {
     int fd;
@@ -215,17 +280,26 @@ int write_file_from_content(char path[], const uint8_t *content, size_t content_
 
 int write_file_to_dest_dir(char path[], const uint8_t *content, size_t content_size, const char *dirpath)
 {
-    char abs_path[MAXLINE];
+    int fd;
+    int ok = 1;
 
     if (path == NULL || content == NULL || dirpath == NULL) {
         return 0;
     }
 
-    if (!get_abs_path_from_src_path(path, abs_path, dirpath, 0)) {
+    if (!open_file_w(path, &fd, dirpath)) {
         return 0;
     }
 
-    return write_file_from_content(abs_path, content, content_size);
+    if (content_size > 0) {
+        ok = write_all_fd(fd, content, content_size);
+    }
+
+    if (close(fd) < 0) {
+        return 0;
+    }
+
+    return ok;
 }
 
 int is_relative_path(char path[])
