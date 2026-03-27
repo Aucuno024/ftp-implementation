@@ -12,7 +12,7 @@
 #define PORT 2121
 #define PART_SUFFIX ".part"
 #define META_SUFFIX ".part.meta"
-#define SPEAKER "Al"
+#define SPEAKER "Dio Brando"
 
 
 /**
