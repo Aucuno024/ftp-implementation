@@ -6,13 +6,17 @@
 #ifndef SLAVE_PORT
 #define SLAVE_PORT 2121
 #endif
-#define MAX_NAME_LEN 256
+
 #ifndef POOL_SIZE
 #define POOL_SIZE 20
 #endif
 
+#define MAX_NAME_LEN 256
 #define SPEAKER "Raccoon"
 
+#ifndef MASTER_PATH
+#define MASTER_PATH "config_slave"
+#endif
 
 #ifdef DEBUG
 void handler_pipe(int signal) 
@@ -37,6 +41,8 @@ void handler_int(int signal)
     #endif
     exit(0);
 }
+
+int coherence(log_t *log, char *master_ip);
 /* 
  * Note that this code only works with IPv4 addresses
  * (IPv6 is not supporteded)
@@ -55,8 +61,28 @@ int main(int argc, char **argv)
     struct sockaddr_in clientaddr;
     char client_ip_string[INET_ADDRSTRLEN];
     char client_hostname[MAX_NAME_LEN];
-
+    char master_ip[INET_ADDRSTRLEN];
     clientlen = (socklen_t)sizeof(clientaddr);
+
+    int fd = Open(MASTER_PATH, O_RDONLY, 0);
+    rio_t rio;
+    Rio_readinitb(&rio, fd);
+    char buf[MAXLINE];
+    int n = 0;
+    int j = 0;
+    Rio_readlineb(&rio, buf, MAXLINE);
+    for(; j < INET_ADDRSTRLEN - 1; j++)
+    {
+        #ifdef DEBUG
+            printf("%s say \"Caractere lu : %c\"\n", SPEAKER, buf[j]);
+        #endif
+        if(buf[j] != '\n')
+            master_ip[j] = buf[j];
+        else
+            master_ip[j]='\0';
+    }
+    master_ip[j] = '\0';
+    Close(fd);
 
     listenfd = Open_listenfd(SLAVE_PORT);
     #ifdef DEBUG
@@ -127,6 +153,10 @@ int main(int argc, char **argv)
                     printf("%s say \"End of connection\"\n", SPEAKER);
                 #endif
                 Close(connfd);
+                if(!is_update)
+                {
+                    coherence(log, master_ip);
+                }
                 free_log(log);
             }
         }
