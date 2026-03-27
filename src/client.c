@@ -394,28 +394,34 @@ int main(int argc, char **argv)
         fprintf(stderr, "usage: %s <host>\n", argv[0]);
         exit(0);
     }
-    master = argv[1];
-
-    /*
-     * Note that the 'host' can be a name or an IP address.
-     * If necessary, Open_clientfd will perform the name resolution
-     * to obtain the IP address.
-     */
-    clientfd = Open_clientfd(master, PORT);
-    
-    /*
-     * At this stage, the connection is established between the client
-     * and the server OS ... but it is possible that the server application
-     * has not yet called "Accept" for this connection
-     */
-    printf("client connected to server Master\n"); 
-    int err;
-    if((err = get_cred(&port, host, clientfd)))
+    if(argc > 2 && !strcmp(argv[2], "-s"))
     {
-        printf("Erreur : aucun acces disponible a un slave %d\n", err);
-        exit(err);
+        host = argv[1];
+    } else {
+        master = argv[1];
+
+        /*
+        * Note that the 'host' can be a name or an IP address.
+        * If necessary, Open_clientfd will perform the name resolution
+        * to obtain the IP address.
+        */
+        clientfd = Open_clientfd(master, PORT);
+        
+        /*
+        * At this stage, the connection is established between the client
+        * and the server OS ... but it is possible that the server application
+        * has not yet called "Accept" for this connection
+        */
+        printf("client connected to server Master\n"); 
+        int err;
+        if((err = get_cred(&port, host, clientfd)))
+        {
+            printf("Erreur : aucun acces disponible a un slave %d\n", err);
+            exit(err);
+        }
+        Close(clientfd);
     }
-    Close(clientfd);
+    
     clientfd = Open_clientfd(host, port);
     printf("client connected to server OS\n"); 
 
