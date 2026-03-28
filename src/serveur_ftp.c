@@ -124,16 +124,27 @@ int coherence(log_t *log, char *master_ip)
                 log_t *entry = log;
                 while (entry) {
                     response_t ack;
+                    char update_payload[MAXLINE];
+                    if (entry->type != RM && entry->type != PUT) {
+                        entry = follow(entry);
+                        continue;
+                    }
+
+                    if (snprintf(update_payload, sizeof(update_payload), "%d\n%s", (int)entry->type, entry->path) >= (int)sizeof(update_payload)) {
+                        entry = follow(entry);
+                        continue;
+                    }
+
+                    encode_request(&request, UPDATE, update_payload);
+                    write_request(&request, slavefd);
+                    if (read_response(&ack, slavefd)) {
+                        break;
+                    }
+
                     if (entry->type == PUT) {
                         uint8_t ack_content[MAXLINE];
                         uint8_t ack_error = TYPE_ERROR_R;
-
-                        encode_request(&request, PUT, entry->path);
-                        write_request(&request, slavefd);
-                        if (read_response(&ack, slavefd)) {
-                            break;
-                        }
-                        if (decode_response(&ack, ack_content, &ack_error) || ack_error != NO_ERROR_R || strcmp((char *)ack_content, "READY_PUT") != 0) {
+                        if (decode_response(&ack, ack_content, &ack_error) != 0 || ack_error != NO_ERROR_R || strcmp((char *)ack_content, "READY_UPDATE_PUT") != 0) {
                             break;
                         }
                         if (send_file_by_blocks(slavefd, entry->path, DEFAULT_SERVER_DIR) == CLIENT_DISCONNECTED_R) {
@@ -141,15 +152,6 @@ int coherence(log_t *log, char *master_ip)
                         }
                         if (read_response(&ack, slavefd)) {
                             break;
-                        }
-                    } else {
-                        char update_payload[MAXLINE];
-                        if (snprintf(update_payload, sizeof(update_payload), "%d\n%s", (int)entry->type, entry->path) < (int)sizeof(update_payload)) {
-                            encode_request(&request, UPDATE, update_payload);
-                            write_request(&request, slavefd);
-                            if (read_response(&ack, slavefd)) {
-                                break;
-                            }
                         }
                     }
                     entry = follow(entry);

@@ -585,15 +585,38 @@ int send_server_response(int connfd, char path[], typereq_t type, log_t *log)
             }
 
             if (forwarded_type == PUT) {
+                int put_result;
                 response = malloc(sizeof(response_t));
                 if (response == NULL) {
                     return 1;
                 }
-                encode_response(response, (const uint8_t *)"UPDATE PUT IGNORED\n");
+                encode_response(response, (const uint8_t *)"READY_UPDATE_PUT");
                 response->error = NO_ERROR_R;
                 write_response(response, connfd);
                 free(response);
-                return NO_ERROR_R;
+
+                put_result = receive_file_by_blocks_to_path(connfd, forwarded_path, DEFAULT_SERVER_DIR, 0, NULL);
+                if (put_result == CLIENT_DISCONNECTED_R) {
+                    return CLIENT_DISCONNECTED_R;
+                }
+
+                response = malloc(sizeof(response_t));
+                if (response == NULL) {
+                    return 1;
+                }
+
+                if (put_result == NO_ERROR_R) {
+                    encode_response(response, (const uint8_t *)"UPDATE PUT OK\n");
+                    response->error = NO_ERROR_R;
+                } else {
+                    char put_error_text[MAXLINE];
+                    snprintf(put_error_text, sizeof(put_error_text), "UPDATE PUT ERROR %d", put_result);
+                    encode_response(response, (const uint8_t *)put_error_text);
+                    response->error = put_result;
+                }
+                write_response(response, connfd);
+                free(response);
+                return put_result;
             }
 
             send_error(connfd, TYPE_ERROR_R);
