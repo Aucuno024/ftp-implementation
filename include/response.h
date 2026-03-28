@@ -195,4 +195,5 @@ int send_content(int connfd, char *content, size_t size);
 #define CLIENT_DISCONNECTED_R 4
 #define OFFSET_ERROR_R 5
 #define SLAVE_ERROR 6
+#define PASSWORD_ERROR 7
 #endif

@@ -14,6 +14,10 @@
 #define META_SUFFIX ".part.meta"
 #define SPEAKER "Al"
 
+#ifndef MAX_PASS
+#define MAX_PASS 51
+#endif
+
 
 /**
  * @brief Construit le chemin local de destination à partir du chemin distant
@@ -346,10 +350,10 @@ int command_parser(const char *cmd, typereq_t *typereq, char *path) {
 }
 
 
-int get_cred(int *port, char *host, int clientfd)
+int get_cred(int *port, char *host, int clientfd, char *passwd)
 {
     request_t request;
-    encode_request(&request, GET, "");
+    encode_request(&request, GET, passwd);
     write_request(&request, clientfd);
 
     response_t response;
@@ -395,6 +399,10 @@ int main(int argc, char **argv)
         exit(0);
     }
     master = argv[1];
+    char passwd[MAX_PASS];
+    fprintf(stdout, "Entrez un mot de passe>");
+    fgets(passwd, MAX_PASS - 1, stdin);
+    if (strlen(passwd) > 0 && passwd[strlen(passwd)-1] == '\n') passwd[strlen(passwd)-1] = '\0';
 
     /*
      * Note that the 'host' can be a name or an IP address.
@@ -410,7 +418,7 @@ int main(int argc, char **argv)
      */
     printf("client connected to server Master\n"); 
     int err;
-    if((err = get_cred(&port, host, clientfd)))
+    if((err = get_cred(&port, host, clientfd, passwd)))
     {
         printf("Erreur : aucun acces disponible a un slave %d\n", err);
         exit(err);

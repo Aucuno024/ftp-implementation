@@ -22,6 +22,14 @@
 #define SLAVE_PATH "config_master"
 #endif
 
+#ifndef MAX_PASS
+#define MAX_PASS 51
+#endif
+
+#ifndef PASSWORD
+#define PASSWORD "Pa$$word"
+#endif
+
 void handler_chld(int signal) 
 {
     wait(NULL);
@@ -151,11 +159,21 @@ int main(int argc, char **argv)
             send_error(connfd, ERROR_READ_REQUEST);
             break;
             }
-            char content[MAXLINE];
+            char content[MAX_PASS];
             typereq_t typereq;
             decode_request(request, &typereq, content);
             free(request);
-            
+            if(strcmp(content, PASSWORD))
+            {
+                #ifdef DEBUG
+                    printf("%s say \"Password not correct %s, %s, %d\"\n", SPEAKER, PASSWORD, content, strcmp(content, PASSWORD));
+                #endif
+                send_error(connfd, PASSWORD_ERROR);
+                break;
+            }
+            #ifdef DEBUG
+                    printf("%s say \"check request type\"\n", SPEAKER);
+            #endif
             if(connected && typereq == GET)
             {
             
