@@ -10,7 +10,7 @@ SRCS=$(wildcard $(SRCDIR)/*.c)
 OBJS = $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 CFLAGS=-Wall -g
 CPPFLAGS=-Iinclude
-LIBS+=
+LIBS+=-lcrypt
 
 TEST_SRCDIR=src_test
 TEST_INCDIR=include_test

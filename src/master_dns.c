@@ -1,3 +1,4 @@
+#include <crypt.h>
 #include "csapp.h"
 #include "request.h"
 #include "response.h"
@@ -27,8 +28,10 @@
 #endif
 
 #ifndef PASSWORD
-#define PASSWORD "Pa$$word"
+#define PASSWORD "kcqZ6RFeCJNPo"
 #endif
+
+#define ALT "kc"
 
 void handler_chld(int signal) 
 {
@@ -163,7 +166,7 @@ int main(int argc, char **argv)
             typereq_t typereq;
             decode_request(request, &typereq, content);
             free(request);
-            if(strcmp(content, PASSWORD))
+            if(strcmp(crypt(content, ALT), PASSWORD))
             {
                 #ifdef DEBUG
                     printf("%s say \"Password not correct %s, %s, %d\"\n", SPEAKER, PASSWORD, content, strcmp(content, PASSWORD));
